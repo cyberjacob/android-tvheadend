@@ -39,8 +39,6 @@ import ie.macinnes.tvheadend.MiscUtils;
 import ie.macinnes.tvheadend.sync.EpgSyncService;
 import ie.macinnes.tvheadend.sync.EpgSyncTask;
 
-import static android.os.Build.VERSION_CODES.N;
-
 public class AutomaticSetup {
     private static final String TAG = "AutoSetup";
     private static final String ACCOUNT_TYPE = "ie.macinnes.tvheadend";
@@ -71,17 +69,10 @@ public class AutomaticSetup {
         this.accountHttpPort = accountHttpPort;
         this.accountHttpPath = accountHttpPath;
 
-        //final String accountName     = "room";
-        //final String accountPassword = "room";
-        //final String accountHostname = "tvstreaming";
-        //final String accountHtspPort = "9982";
-        //final String accountHttpPort = "9981";
-        //final String accountHttpPath = "";
-
         mAccountManager = AccountManager.get(mContext);
     }
 
-    public void startSetup() {
+    void startSetup() {
         setState(State.STARTING);
 
         HtspConnection.ConnectionDetails connectionDetails = new HtspConnection.ConnectionDetails(accountHostname, accountHtspPort, accountName, accountPassword, "android-tvheadend (auth)", BuildConfig.VERSION_NAME);
@@ -188,19 +179,19 @@ public class AutomaticSetup {
         editor.apply();
     }
 
-    public interface Listener {
+    interface Listener {
         Handler getHandler();
         void onSetupStateChange(@NonNull State state);
     }
 
-    public enum State {
+    enum State {
         STARTING,
         CONNECTED,
         COMPLETE,
         FAILED
     }
 
-    public void addSetupListener(Listener listener) {
+    void addSetupListener(Listener listener) {
         if (mListeners.contains(listener)) {
             Log.w(TAG, "Attempted to add duplicate setup listener");
             return;

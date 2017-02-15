@@ -36,8 +36,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
-public class AutoSetupActivityReceiver extends BroadcastReceiver {
+public class SetupReceiver extends BroadcastReceiver {
+    private static final String TAG = "SetupReceiver";
+
     @Override
     public void onReceive(Context context, Intent intent) {
         Intent outIntent = new Intent(context, AutomaticSetup.class);
@@ -50,23 +53,51 @@ public class AutoSetupActivityReceiver extends BroadcastReceiver {
         int accountHtspPort = intent.getIntExtra("accountHtspPort", -1);
         int accountHttpPort = intent.getIntExtra("accountHttpPort", -1);
         String accountHttpPath = intent.getStringExtra("accountHttpPath");
-        //TODO: Null checking
+        if (accountName == null) {
+            throw new IllegalArgumentException("accountName cannot be null");
+        } else if (accountPassword == null) {
+            throw new IllegalArgumentException("accountPassword cannot be null");
+        } else if (accountHostname == null) {
+            throw new IllegalArgumentException("accountHostname cannot be null");
+        } else if (accountHtspPort == -1) {
+            throw new IllegalArgumentException("accountHtspPort cannot be null");
+        } else if (accountHttpPort == -1) {
+            throw new IllegalArgumentException("accountHttpPort cannot be null");
+        } else if (accountHttpPath == null) {
+            throw new IllegalArgumentException("accountHttpPath cannot be null");
+        }
 
         AutomaticSetup automaticSetup = new AutomaticSetup(context, accountName, accountPassword, accountHostname, accountHtspPort, accountHttpPort, accountHttpPath);
-        automaticSetup.addSetupListener(new AutomaticSetup.Listener() {
-            @Override
-            public Handler getHandler() {
-                return null;
-            }
+        automaticSetup.addSetupListener(new SetupListener(context));
+        automaticSetup.startSetup();
+    }
 
-            @Override
-            public void onSetupStateChange(@NonNull AutomaticSetup.State state) {
-                if (state == AutomaticSetup.State.FAILED) {
-                    //TODO: Something
-                } else if (state == AutomaticSetup.State.COMPLETE) {
-                    //TODO: Something else
-                }
+    private class SetupListener implements AutomaticSetup.Listener {
+        Context mContext;
+
+        SetupListener(Context context) {
+            mContext = context;
+        }
+
+        @Override
+        public Handler getHandler() {
+            return null;
+        }
+
+        @Override
+        public void onSetupStateChange(@NonNull AutomaticSetup.State state) {
+            if (state == AutomaticSetup.State.FAILED) {
+                Log.e(TAG, "Automatic setup failed!");
+                Intent failureIntent = new Intent();
+                failureIntent.setAction("ie.macinnes.tvheadend.autoSetup.failure");
+                mContext.sendBroadcast(failureIntent);
+
+            } else if (state == AutomaticSetup.State.COMPLETE) {
+                Log.i(TAG, "Automatic setup succeeded!");
+                Intent successIntent = new Intent();
+                successIntent.setAction("ie.macinnes.tvheadend.autoSetup.success");
+                mContext.sendBroadcast(successIntent);
             }
-        });
+        }
     }
 }

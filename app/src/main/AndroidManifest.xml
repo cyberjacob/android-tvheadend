@@ -150,13 +150,10 @@ under the License.
             </intent-filter>
         </receiver>
         
-        <receiver android:name=".setup.AutoSetupActivityReceiver"
+        <receiver android:name=".setup.SetupReceiver"
             android:enabled="true">
             <intent-filter>
-                <action android:name="ie.macinnes.tvheadend.startAutoSetup" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="ie.macinnes.tvheadend.autoSetup" />
             </intent-filter>
         </receiver>
     </application>
