@@ -38,33 +38,33 @@ import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import ie.macinnes.tvheadend.Constants;
+
 public class SetupReceiver extends BroadcastReceiver {
     private static final String TAG = "SetupReceiver";
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Intent outIntent = new Intent(context, AutomaticSetup.class);
-        outIntent.putExtra("intent", intent);
-        context.startActivity(outIntent);
+        Log.d(TAG, "Setup Broadcast Received");
 
-        String accountName = intent.getStringExtra("accountName");
-        String accountPassword = intent.getStringExtra("accountPassword");
-        String accountHostname = intent.getStringExtra("accountHostname");
-        int accountHtspPort = intent.getIntExtra("accountHtspPort", -1);
-        int accountHttpPort = intent.getIntExtra("accountHttpPort", -1);
-        String accountHttpPath = intent.getStringExtra("accountHttpPath");
+        String accountName = intent.getStringExtra(Constants.KEY_USERNAME);
+        String accountPassword = intent.getStringExtra(Constants.KEY_PASSWORD);
+        String accountHostname = intent.getStringExtra(Constants.KEY_HOSTNAME);
+        int accountHtspPort = intent.getIntExtra(Constants.KEY_HTSP_PORT, -1);
+        int accountHttpPort = intent.getIntExtra(Constants.KEY_HTTP_PORT, -1);
+        String accountHttpPath = intent.getStringExtra(Constants.KEY_HTTP_PATH);
         if (accountName == null) {
-            throw new IllegalArgumentException("accountName cannot be null");
+            throw new IllegalArgumentException("account name cannot be null");
         } else if (accountPassword == null) {
-            throw new IllegalArgumentException("accountPassword cannot be null");
+            throw new IllegalArgumentException("account password cannot be null");
         } else if (accountHostname == null) {
-            throw new IllegalArgumentException("accountHostname cannot be null");
+            throw new IllegalArgumentException("account hostname cannot be null");
         } else if (accountHtspPort == -1) {
-            throw new IllegalArgumentException("accountHtspPort cannot be null");
+            throw new IllegalArgumentException("account HTSP port cannot be null");
         } else if (accountHttpPort == -1) {
-            throw new IllegalArgumentException("accountHttpPort cannot be null");
+            throw new IllegalArgumentException("account HTTP port cannot be null");
         } else if (accountHttpPath == null) {
-            throw new IllegalArgumentException("accountHttpPath cannot be null");
+            accountHttpPath = "/";
         }
 
         AutomaticSetup automaticSetup = new AutomaticSetup(context, accountName, accountPassword, accountHostname, accountHtspPort, accountHttpPort, accountHttpPath);
@@ -86,12 +86,13 @@ public class SetupReceiver extends BroadcastReceiver {
 
         @Override
         public void onSetupStateChange(@NonNull AutomaticSetup.State state) {
+            Log.e(TAG, "Setup in state "+state);
+
             if (state == AutomaticSetup.State.FAILED) {
                 Log.e(TAG, "Automatic setup failed!");
                 Intent failureIntent = new Intent();
                 failureIntent.setAction("ie.macinnes.tvheadend.autoSetup.failure");
                 mContext.sendBroadcast(failureIntent);
-
             } else if (state == AutomaticSetup.State.COMPLETE) {
                 Log.i(TAG, "Automatic setup succeeded!");
                 Intent successIntent = new Intent();

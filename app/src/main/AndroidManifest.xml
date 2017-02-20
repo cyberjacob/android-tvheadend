@@ -151,9 +151,11 @@ under the License.
         </receiver>
         
         <receiver android:name=".setup.SetupReceiver"
-            android:enabled="true">
+            android:enabled="true"
+            android:exported="true">
             <intent-filter>
                 <action android:name="ie.macinnes.tvheadend.autoSetup" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
     </application>
