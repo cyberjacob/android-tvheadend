@@ -125,7 +125,7 @@ public class AutomaticSetup {
                     completeSetup();
                 } else if (state == Authenticator.State.FAILED) {
                     // Close the connection, it's no longer needed
-                    mConnection.closeConnection();
+                    mConnection.stop();
 
                     Log.w(TAG, "Failed to validate credentials");
 
