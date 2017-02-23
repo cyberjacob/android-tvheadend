@@ -97,6 +97,10 @@ under the License.
             android:name=".settings.SettingsActivity"
             android:theme="@style/Theme.Preferences">
         </activity>
+        
+        <activity android:name=".DummyActivity"
+            android:exported="true"
+            />
 
         <service
             android:name=".tvinput.TvInputService"
