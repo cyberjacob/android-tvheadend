@@ -169,7 +169,8 @@ public class AutomaticSetup {
     }
 
     private void completeSetup() {
-        String session = Constants.SESSION_MEDIA_PLAYER;
+        //String session = Constants.SESSION_MEDIA_PLAYER;
+        String session = Constants.SESSION_EXO_PLAYER;
 
         SharedPreferences sharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
