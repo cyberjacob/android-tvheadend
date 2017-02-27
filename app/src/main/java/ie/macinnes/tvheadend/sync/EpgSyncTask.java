@@ -40,11 +40,15 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import ie.macinnes.htsp.HtspFileInputStream;
 import ie.macinnes.htsp.HtspMessage;
+import ie.macinnes.htsp.HtspNotConnectedException;
 import ie.macinnes.htsp.tasks.Authenticator;
 import ie.macinnes.tvheadend.BuildConfig;
 import ie.macinnes.tvheadend.Constants;
@@ -97,10 +101,20 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
     private final SparseArray<ContentProviderOperation> mPendingChannelOps = new SparseArray<>();
     private final SparseArray<ContentProviderOperation> mPendingProgramOps = new SparseArray<>();
 
-    private final SparseArray<Uri> mPendingChannelLogoFetches = new SparseArray<>();
+    private final Queue<PendingChannelLogoFetch> mPendingChannelLogoFetches = new ConcurrentLinkedQueue<>();
 
     private Set<Integer> mSeenChannels = new HashSet<>();
     private Set<Integer> mSeenPrograms = new HashSet<>();
+
+    private final class PendingChannelLogoFetch {
+        public int channelId;
+        public Uri logoUri;
+
+        public PendingChannelLogoFetch(int channelId, Uri logoUri) {
+            this.channelId = channelId;
+            this.logoUri = logoUri;
+        }
+    }
 
     public EpgSyncTask(Context context, @NonNull HtspMessage.Dispatcher dispatcher, boolean quickSync) {
         this(context, dispatcher);
@@ -172,7 +186,12 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
                 Log.d(TAG, "Skipping lastUpdate field, disabled by preference");
             }
 
-            mDispatcher.sendMessage(enableAsyncMetadataRequest);
+            try {
+                mDispatcher.sendMessage(enableAsyncMetadataRequest);
+            } catch (HtspNotConnectedException e) {
+                Log.d(TAG, "Failed to enable async metadata, HTSP not connected", e);
+                return;
+            }
         }
     }
 
@@ -280,7 +299,7 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
         }
 
         if (message.containsKey("channelIcon")) {
-            mPendingChannelLogoFetches.put(channelId, Uri.parse(message.getString("channelIcon")));
+            mPendingChannelLogoFetches.add(new PendingChannelLogoFetch(channelId, Uri.parse(message.getString("channelIcon"))));
         }
 
         mSeenChannels.add(channelId);
@@ -337,10 +356,17 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
 
         Log.d(TAG, "Flushing " + mPendingChannelLogoFetches.size() + " channel logo fetches");
 
-        for (int i = 0; i < mPendingChannelLogoFetches.size(); i++) {
-            final int channelId = mPendingChannelLogoFetches.keyAt(i);
-            final Uri channelLogoSourceUri = mPendingChannelLogoFetches.valueAt(i);
-            final Uri channelLogoDestUri = TvContract.buildChannelLogoUri(TvContractUtils.getChannelUri(mContext, channelId));
+        for (PendingChannelLogoFetch pendingChannelLogoFetch : mPendingChannelLogoFetches) {
+            final int channelId = pendingChannelLogoFetch.channelId;
+            final long androidChannelId = TvContractUtils.getChannelId(mContext, channelId);
+
+            if (androidChannelId == TvContractUtils.INVALID_CHANNEL_ID) {
+                Log.e(TAG, "Failed to final channel in android DB, channel ID: " + channelId);
+                continue;
+            }
+
+            final Uri channelLogoSourceUri = pendingChannelLogoFetch.logoUri;
+            final Uri channelLogoDestUri = TvContract.buildChannelLogoUri(androidChannelId);
 
             InputStream is = null;
             OutputStream os = null;
@@ -520,7 +546,7 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
 
         // Throttle the batch operation not to cause TransactionTooLargeException. If the initial
         // sync has already completed, flush for every message.
-        if (mInitialSyncCompleted || mPendingProgramOps.size() >= 500) {
+        if (mInitialSyncCompleted || mPendingProgramOps.size() >= 100) {
             flushPendingEventOps();
         }
 
