@@ -48,6 +48,7 @@ under the License.
     <string name="server_ip_invalid">Invalid Hostname</string>
     <string name="server_name">Tvheadend Server</string>
     <string name="server_name_body">Enter your Tvheadend server hostname or IP address</string>
+    
     <string name="setup_account_action_title">Account Selection</string>
     <string name="setup_account_body">Please choose an existing, or create a new Tvheadend account to use</string>
     <string name="setup_account_complete_body">You\'re all set!</string>
@@ -81,24 +82,8 @@ under the License.
     <string name="ExoPlayer_title">ExoPlayer</string>
     <string name="mediaplayer_body">Android Media Player (Deprecated)</string>
     <string name="mediaplayer_title">Media Player</string>
+
     <string name="VLC_body">VideoLAN LibVLC (Deprecated)</string>
-<<<<<<< HEAD
-    <string name="mediaplayer_body">Android Media Player (Deprecated)</string>
-    <string name="setup_sync_title">Syncing Channels and Program data</string>
-    <string name="setup_sync_body">Just a few seconds please :)</string>
-    <string name="setup_sync_description">Processing</string>
-    <string name="setup_complete_title">Setup Complete</string>
-    <string name="setup_complete_body">More EPG data, channel logs, etc are downloading in the background</string>
-    <string name="setup_settings_title">Settings</string>
-    <string name="setup_settings_body">Advanced Settings</string>
-    <string name="setup_complete_action_title">Complete</string>
-    <string name="setup_complete_action_body">You\'re all set!</string>
-    <string name="prepare_error_toast">Failed to prepare video</string>
-    <string name="track_format">%1$i - %2$i</string>
-    <string name="unsupported_video_error_toast">Unsupported Video Track Selected</string>
-    <string name="unsupported_audio_error_toast">Unsupported Audio Track Selected</string>
-    <string name="unsupported_text_error_toast">Unsupported Text Track Selected</string>
-=======
     <string name="VLC_title">LibVLC</string>
->>>>>>> upstream
+
 </resources>
