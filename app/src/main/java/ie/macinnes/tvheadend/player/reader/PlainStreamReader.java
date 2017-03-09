@@ -16,6 +16,7 @@
 
 package ie.macinnes.tvheadend.player.reader;
 
+import android.content.Context;
 import android.support.annotation.NonNull;
 
 import com.google.android.exoplayer2.C;
@@ -25,12 +26,18 @@ import com.google.android.exoplayer2.extractor.TrackOutput;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 
 import ie.macinnes.htsp.HtspMessage;
+import ie.macinnes.tvheadend.Application;
 
 /**
  * A PlainStreamReader simply copies the raw bytes from muxpkt's over onto the track output
  */
 abstract class PlainStreamReader implements StreamReader {
+    private final Context mContext;
     protected TrackOutput mTrackOutput;
+
+    public PlainStreamReader(Context context) {
+        mContext = context;
+    }
 
     @Override
     public final void createTracks(@NonNull HtspMessage stream, @NonNull ExtractorOutput output) {
@@ -50,6 +57,12 @@ abstract class PlainStreamReader implements StreamReader {
         // frametype   u32   required   Type of frame as ASCII value: 'I', 'P', 'B'
         mTrackOutput.sampleData(pba, payload.length);
         mTrackOutput.sampleMetadata(pts, C.BUFFER_FLAG_KEY_FRAME, payload.length, 0, null);
+    }
+
+    @Override
+    public void release() {
+        // Watch for memory leaks
+        Application.getRefWatcher(mContext).watch(this);
     }
 
     @NonNull

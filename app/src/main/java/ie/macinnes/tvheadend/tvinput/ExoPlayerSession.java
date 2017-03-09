@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 
 import ie.macinnes.htsp.SimpleHtspConnection;
+import ie.macinnes.tvheadend.Application;
 import ie.macinnes.tvheadend.BuildConfig;
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.MiscUtils;
@@ -106,6 +107,8 @@ public class ExoPlayerSession extends BaseSession implements ExoPlayer.EventList
         // Stop any existing playback
         stopPlayback();
 
+        Log.i(TAG, "Start playback of channel");
+
         SharedPreferences sharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
@@ -125,10 +128,14 @@ public class ExoPlayerSession extends BaseSession implements ExoPlayer.EventList
 
     @Override
     protected void stopPlayback() {
+        Log.i(TAG, "Stopping playback of channel");
         mExoPlayer.stop();
 
         if (mMediaSource != null) {
             mMediaSource.releaseSource();
+
+            // Watch for memory leaks
+            Application.getRefWatcher(mContext).watch(mMediaSource);
         }
     }
 
@@ -323,7 +330,7 @@ public class ExoPlayerSession extends BaseSession implements ExoPlayer.EventList
         mDataSourceFactory = new HtspDataSource.Factory(mContext, mConnection, streamProfile);
 
         // Produces Extractor instances for parsing the media data.
-        mExtractorsFactory = new HtspExtractor.Factory();
+        mExtractorsFactory = new HtspExtractor.Factory(mContext);
     }
 
     private void buildHttpExoPlayer() {

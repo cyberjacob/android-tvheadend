@@ -17,6 +17,7 @@
 
 package ie.macinnes.tvheadend.player.reader;
 
+import android.content.Context;
 import android.support.annotation.NonNull;
 
 import com.google.android.exoplayer2.C;
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.Locale;
 
 import ie.macinnes.htsp.HtspMessage;
+import ie.macinnes.tvheadend.Application;
 
 public class TextsubStreamReader implements StreamReader {
     private static final String TAG = TextsubStreamReader.class.getName();
@@ -61,7 +63,12 @@ public class TextsubStreamReader implements StreamReader {
      */
     private static final int SUBRIP_TIMECODE_LENGTH = 12;
 
+    private final Context mContext;
     protected TrackOutput mTrackOutput;
+
+    public TextsubStreamReader(Context context) {
+        mContext = context;
+    }
 
     @Override
     public final void createTracks(@NonNull HtspMessage stream, @NonNull ExtractorOutput output) {
@@ -74,7 +81,7 @@ public class TextsubStreamReader implements StreamReader {
     public void consume(@NonNull final HtspMessage message) {
         final long pts = message.getInteger("pts");
         final long duration = message.getInteger("duration");
-        final byte[] payload = message.getByteArray("payload");
+        final byte[] payload = new String(message.getByteArray("payload")).trim().getBytes();
 
         final int lengthWithPrefix = SUBRIP_PREFIX.length + payload.length;
         final byte[] subsipSample = Arrays.copyOf(SUBRIP_PREFIX, lengthWithPrefix);
@@ -85,6 +92,12 @@ public class TextsubStreamReader implements StreamReader {
 
         mTrackOutput.sampleData(new ParsableByteArray(subsipSample), lengthWithPrefix);
         mTrackOutput.sampleMetadata(pts, C.BUFFER_FLAG_KEY_FRAME, lengthWithPrefix, 0, null);
+    }
+
+    @Override
+    public void release() {
+        // Watch for memory leaks
+        Application.getRefWatcher(mContext).watch(this);
     }
 
     @NonNull

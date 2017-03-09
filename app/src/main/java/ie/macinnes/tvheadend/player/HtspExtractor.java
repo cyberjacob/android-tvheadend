@@ -16,6 +16,7 @@
 
 package ie.macinnes.tvheadend.player;
 
+import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.SparseArray;
@@ -30,10 +31,10 @@ import com.google.android.exoplayer2.extractor.SeekMap;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 
 import ie.macinnes.htsp.HtspMessage;
+import ie.macinnes.tvheadend.Application;
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.player.reader.StreamReader;
 import ie.macinnes.tvheadend.player.reader.StreamReadersFactory;
@@ -45,12 +46,15 @@ public class HtspExtractor implements Extractor {
     public static class Factory implements ExtractorsFactory {
         private static final String TAG = Factory.class.getName();
 
-        public Factory() {
+        private final Context mContext;
+
+        public Factory(Context context) {
+            mContext = context;
         }
 
         @Override
         public Extractor[] createExtractors() {
-            return new Extractor[] { new HtspExtractor() };
+            return new Extractor[] { new HtspExtractor(mContext) };
         }
     }
 
@@ -71,10 +75,14 @@ public class HtspExtractor implements Extractor {
         }
     }
 
+    private Context mContext;
     private ExtractorOutput mOutput;
     private SparseArray<StreamReader> mStreamReaders = new SparseArray<>();
 
-    public HtspExtractor() {
+    private final byte[] mRawBytes = new byte[1024 * 1024];
+
+    public HtspExtractor(Context context) {
+        mContext = context;
         Log.d(TAG, "New HtspExtractor instantiated");
     }
 
@@ -86,20 +94,19 @@ public class HtspExtractor implements Extractor {
 
     @Override
     public void init(ExtractorOutput output) {
+        Log.i(TAG, "Initializing HTSP Extractor");
         mOutput = output;
         mOutput.seekMap(new HtspSeekMap());
     }
 
     @Override
     public int read(ExtractorInput input, PositionHolder seekPosition) throws IOException, InterruptedException {
-        byte[] rawBytes = new byte[1024 * 1024];
-
-        int bytesRead = input.read(rawBytes, 0, rawBytes.length);
+        int bytesRead = input.read(mRawBytes, 0, mRawBytes.length);
 
         if (Constants.DEBUG)
             Log.v(TAG, "Read " + bytesRead + " bytes");
 
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(rawBytes, 0, bytesRead);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(mRawBytes, 0, bytesRead);
         ObjectInputStream objectInput = null;
 
         try {
@@ -108,15 +115,14 @@ public class HtspExtractor implements Extractor {
                 handleMessage((HtspMessage) objectInput.readUnshared());
             }
         } catch (IOException e) {
-            // Ignore?
-            Log.w(TAG, "IOException", e);
+            // TODO: This is a problem, and returning RESULT_END_OF_INPUT is a hack... I think?
+            Log.w(TAG, "Caught IOException, returning RESULT_END_OF_INPUT", e);
+            return RESULT_END_OF_INPUT;
         } catch (ClassNotFoundException e) {
             Log.w(TAG, "Class Not Found");
         } finally {
             try {
-                if (inputStream != null) {
-                    inputStream.close();
-                }
+                inputStream.close();
             } catch (IOException ex) {
                 // Ignore
             }
@@ -134,12 +140,13 @@ public class HtspExtractor implements Extractor {
 
     @Override
     public void seek(long position, long timeUs) {
-
+        Log.d(TAG, "Seeking HTSP Extractor");
     }
 
     @Override
     public void release() {
-
+        Log.i(TAG, "Releasing HTSP Extractor");
+        mStreamReaders.clear();
     }
 
     // Internal Methods
@@ -156,7 +163,7 @@ public class HtspExtractor implements Extractor {
     private void handleSubscriptionStart(@NonNull final HtspMessage message) {
         Log.i(TAG, "Handling Subscription Start");
 
-        StreamReadersFactory streamReadersFactory = new StreamReadersFactory();
+        StreamReadersFactory streamReadersFactory = new StreamReadersFactory(mContext);
 
         for (HtspMessage stream : message.getHtspMessageArray("streams")) {
             final int streamIndex = stream.getInteger("index");
