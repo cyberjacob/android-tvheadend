@@ -49,8 +49,6 @@ public class AutomaticSetup {
     private final String accountPassword;
     private final String accountHostname;
     private final int accountHtspPort;
-    private final int accountHttpPort;
-    private final String accountHttpPath;
     private final List<Listener> mListeners = new ArrayList<>();
 
     AutomaticSetup(
@@ -58,16 +56,13 @@ public class AutomaticSetup {
             @NonNull String accountName,
             @NonNull String accountPassword,
             @NonNull String accountHostname,
-            int accountHtspPort,
-            int accountHttpPort,
-            @NonNull String accountHttpPath) {
+            int accountHtspPort
+    ) {
         mContext = context;
         this.accountName = accountName;
         this.accountPassword = accountPassword;
         this.accountHostname = accountHostname;
         this.accountHtspPort = accountHtspPort;
-        this.accountHttpPort = accountHttpPort;
-        this.accountHttpPath = accountHttpPath;
 
         mAccountManager = AccountManager.get(mContext);
     }
@@ -86,17 +81,13 @@ public class AutomaticSetup {
             private final String accountPassword;
             private final String accountHostname;
             private final int accountHtspPort;
-            private final int accountHttpPort;
-            private final String accountHttpPath;
 
-            private ConnectionListener(SimpleHtspConnection mConnection, String accountName, String accountPassword, String accountHostname, int accountHtspPort, int accountHttpPort, String accountHttpPath) {
+            private ConnectionListener(SimpleHtspConnection mConnection, String accountName, String accountPassword, String accountHostname, int accountHtspPort) {
                 this.mConnection = mConnection;
                 this.accountName = accountName;
                 this.accountPassword = accountPassword;
                 this.accountHostname = accountHostname;
                 this.accountHtspPort = accountHtspPort;
-                this.accountHttpPort = accountHttpPort;
-                this.accountHttpPath = accountHttpPath;
 
                 mHandlerThread = new HandlerThread("EpgSyncService Handler Thread");
                 mHandlerThread.start();
@@ -113,8 +104,8 @@ public class AutomaticSetup {
 
                     userdata.putString(Constants.KEY_HOSTNAME, accountHostname);
                     userdata.putString(Constants.KEY_HTSP_PORT, String.valueOf(accountHtspPort));
-                    userdata.putString(Constants.KEY_HTTP_PORT, String.valueOf(accountHttpPort));
-                    userdata.putString(Constants.KEY_HTTP_PATH, accountHttpPath);
+                    //userdata.putString(Constants.KEY_HTTP_PORT, String.valueOf(accountHttpPort));
+                    //userdata.putString(Constants.KEY_HTTP_PATH, accountHttpPath);
 
                     mAccountManager.addAccountExplicitly(account, accountPassword, userdata);
 
@@ -156,7 +147,7 @@ public class AutomaticSetup {
             }
         }
 
-        ConnectionListener mConnectionListener = new ConnectionListener(mConnection, accountName, accountPassword, accountHostname, accountHtspPort, accountHttpPort, accountHttpPath);
+        ConnectionListener mConnectionListener = new ConnectionListener(mConnection, accountName, accountPassword, accountHostname, accountHtspPort);
         mConnection.addAuthenticationListener(mConnectionListener);
 
         EpgSyncTask mEpgSyncTask = new EpgSyncTask(mContext, mConnection, true);
@@ -169,15 +160,15 @@ public class AutomaticSetup {
     }
 
     private void completeSetup() {
-        //String session = Constants.SESSION_MEDIA_PLAYER;
-        String session = Constants.SESSION_EXO_PLAYER;
+        ////String session = Constants.SESSION_MEDIA_PLAYER;
+        //String session = Constants.SESSION_EXO_PLAYER;
 
-        SharedPreferences sharedPreferences = mContext.getSharedPreferences(
-                Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
+        //SharedPreferences sharedPreferences = mContext.getSharedPreferences(
+        //        Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(Constants.KEY_SESSION, session);
-        editor.apply();
+        //SharedPreferences.Editor editor = sharedPreferences.edit();
+        //editor.putString(Constants.KEY_SESSION, session);
+        //editor.apply();
     }
 
     interface Listener {
