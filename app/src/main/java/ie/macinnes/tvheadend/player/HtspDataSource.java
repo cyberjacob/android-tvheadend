@@ -28,7 +28,6 @@ import com.google.android.exoplayer2.upstream.DataSpec;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
@@ -42,7 +41,7 @@ import ie.macinnes.tvheadend.Constants;
 
 public class HtspDataSource implements DataSource, Subscriber.Listener, Closeable {
     private static final String TAG = HtspDataSource.class.getName();
-    private static final int FIFTEEN_MB = 15*1024*1024;
+    private static final int BUFFER_SIZE = 10*1024*1024;
 
     public static class Factory implements DataSource.Factory {
         private static final String TAG = Factory.class.getName();
@@ -83,7 +82,7 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
         mConnection = connection;
         mStreamProfile = streamProfile;
 
-        mBuffer = ByteBuffer.allocate(FIFTEEN_MB); // 15 MB
+        mBuffer = ByteBuffer.allocate(BUFFER_SIZE);
         mBuffer.limit(0);
 
         mSubscriber = new Subscriber(mConnection, this);
@@ -121,7 +120,7 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
                 Thread.sleep(250);
             } catch (InterruptedException e) {
                 // Ignore.
-                Log.w(TAG, "Caught InterruptedException, ignoring" ,e);
+                Log.w(TAG, "Caught InterruptedException, ignoring");
             }
         }
 
@@ -176,8 +175,7 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
 
     @Override
     public void onSubscriptionStatus(@NonNull HtspMessage message) {
-        Log.d(TAG, "Received subscriptionStatus");
-        serializeMessageToBuffer(message);
+
     }
 
     @Override
@@ -187,7 +185,12 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
     }
 
     @Override
-    public void onQueueStatus(@NonNull HtspMessage htspMessage) {
+    public void onQueueStatus(@NonNull HtspMessage message) {
+
+    }
+
+    @Override
+    public void onSignalStatus(@NonNull HtspMessage message) {
 
     }
 
