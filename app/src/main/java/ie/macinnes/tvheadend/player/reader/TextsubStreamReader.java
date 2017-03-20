@@ -28,7 +28,6 @@ import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.android.exoplayer2.util.Util;
 
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -64,9 +63,6 @@ public class TextsubStreamReader implements StreamReader {
      */
     private static final int SUBRIP_TIMECODE_LENGTH = 12;
 
-    // UTF-8 is the default on Android
-    private static final Charset UTF_8 = Charset.defaultCharset();
-
     private final Context mContext;
     protected TrackOutput mTrackOutput;
 
@@ -77,17 +73,15 @@ public class TextsubStreamReader implements StreamReader {
     @Override
     public final void createTracks(@NonNull HtspMessage stream, @NonNull ExtractorOutput output) {
         final int streamIndex = stream.getInteger("index");
-        mTrackOutput = output.track(streamIndex, C.TRACK_TYPE_TEXT);
+        mTrackOutput = output.track(streamIndex);
         mTrackOutput.format(buildFormat(streamIndex, stream));
     }
 
     @Override
     public void consume(@NonNull final HtspMessage message) {
-
         final long pts = message.getLong("pts");
         final long duration = message.getInteger("duration");
-        final byte[] payload = Util.getUtf8Bytes(
-                new String(message.getByteArray("payload"), UTF_8).trim());
+        final byte[] payload = new String(message.getByteArray("payload")).trim().getBytes();
 
         final int lengthWithPrefix = SUBRIP_PREFIX.length + payload.length;
         final byte[] subsipSample = Arrays.copyOf(SUBRIP_PREFIX, lengthWithPrefix);

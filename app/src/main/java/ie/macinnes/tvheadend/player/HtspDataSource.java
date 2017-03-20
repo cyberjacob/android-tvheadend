@@ -82,16 +82,8 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
         mConnection = connection;
         mStreamProfile = streamProfile;
 
-        try {
-            mBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-            mBuffer.limit(0);
-        } catch (OutOfMemoryError e) {
-            // Since we're allocating a large buffer here, it's fairly safe to assume we'll have
-            // enough memory to catch and throw this exception. We do this, as each OOM exception
-            // message is unique (lots of #'s of bytes available/used/etc) and means crash reporting
-            // doesn't group things nicely.
-            throw new RuntimeException("OutOfMemoryError when allocating HtspDataSource buffer", e);
-        }
+        mBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+        mBuffer.limit(0);
 
         mSubscriber = new Subscriber(mConnection, this);
         mConnection.addAuthenticationListener(mSubscriber);
@@ -187,16 +179,6 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
     }
 
     @Override
-    public void onSubscriptionSkip(@NonNull HtspMessage message) {
-
-    }
-
-    @Override
-    public void onSubscriptionSpeed(@NonNull HtspMessage message) {
-
-    }
-
-    @Override
     public void onSubscriptionStop(@NonNull HtspMessage message) {
         Log.d(TAG, "Received subscriptionStop");
         mIsOpen = false;
@@ -209,11 +191,6 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
 
     @Override
     public void onSignalStatus(@NonNull HtspMessage message) {
-
-    }
-
-    @Override
-    public void onTimeshiftStatus(@NonNull HtspMessage message) {
 
     }
 

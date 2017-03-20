@@ -20,7 +20,6 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.ParserException;
 import com.google.android.exoplayer2.util.MimeTypes;
@@ -63,10 +62,5 @@ public class H264StreamReader extends PlainStreamReader {
                 StreamReaderUtils.frameDurationToFrameRate(stream.getInteger("duration", Format.NO_VALUE)),
                 initializationData,
                 null);
-    }
-
-    @Override
-    protected int getTrackType() {
-        return C.TRACK_TYPE_VIDEO;
     }
 }

@@ -31,7 +31,6 @@ import ie.macinnes.htsp.SimpleHtspConnection;
 import ie.macinnes.tvheadend.BuildConfig;
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.MiscUtils;
-import ie.macinnes.tvheadend.R;
 import ie.macinnes.tvheadend.account.AccountUtils;
 
 public class EpgSyncService extends Service {
@@ -62,18 +61,13 @@ public class EpgSyncService extends Service {
 
         mSharedPreferences = getSharedPreferences(Constants.PREFERENCE_TVHEADEND, MODE_PRIVATE);
 
-        if (!MiscUtils.isSetupComplete(this)) {
+        if (!mSharedPreferences.getBoolean(Constants.KEY_SETUP_COMPLETE, false)) {
             Log.i(TAG, "Setup not completed, shutting down EPG Sync Service");
             stopSelf();
             return;
         }
 
-        final boolean enableEpgSync = mSharedPreferences.getBoolean(
-                Constants.KEY_EPG_SYNC_ENABLED,
-                getResources().getBoolean(R.bool.pref_default_epg_sync_enabled)
-        );
-
-        if (!enableEpgSync) {
+        if (!mSharedPreferences.getBoolean(Constants.KEY_EPG_SYNC_ENABLED, true)) {
             Log.i(TAG, "EPG Sync disabled, shutting down EPG Sync Service");
             stopSelf();
             return;

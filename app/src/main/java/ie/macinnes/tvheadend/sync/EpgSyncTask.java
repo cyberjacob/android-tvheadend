@@ -43,10 +43,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 import ie.macinnes.htsp.HtspFileInputStream;
 import ie.macinnes.htsp.HtspMessage;
@@ -116,7 +116,7 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
     private final HandlerThread mHandlerThread;
     private final Handler mHandler;
 
-    private final Set<Listener> mListeners = new CopyOnWriteArraySet<>();
+    private final List<Listener> mListeners = new ArrayList<>();
 
     private boolean mInitialSyncCompleted = false;
 
@@ -207,18 +207,10 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
     @Override
     public void onAuthenticationStateChange(@NonNull Authenticator.State state) {
         if (state == Authenticator.State.AUTHENTICATED) {
-            long epgMaxTime = Long.parseLong(
-                    mSharedPreferences.getString(
-                            Constants.KEY_EPG_MAX_TIME,
-                            mContext.getResources().getString(R.string.pref_default_epg_max_time)
-                    )
-            );
-            final boolean lastUpdateEnabled = mSharedPreferences.getBoolean(
-                    Constants.KEY_EPG_LAST_UPDATE_ENABLED,
-                    mContext.getResources().getBoolean(R.bool.pref_default_epg_last_update_enabled)
-            );
+            long epgMaxTime = Long.parseLong(mSharedPreferences.getString(Constants.KEY_EPG_MAX_TIME, "3600"));
+            long lastUpdate = mSharedPreferences.getLong(Constants.KEY_EPG_LAST_UPDATE, 0);
 
-            Log.i(TAG, "Enabling Async Metadata: maxTime: " + epgMaxTime + ", quickSync: " + mQuickSync);
+            Log.i(TAG, "Enabling Async Metadata - lastUpdate: " + lastUpdate + ", maxTime: " + epgMaxTime + ", quickSync: " + mQuickSync);
 
             // Reset the InitialSyncCompleted flag
             mInitialSyncCompleted = false;
@@ -236,10 +228,8 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
             epgMaxTime = epgMaxTime + (System.currentTimeMillis() / 1000L);
             enableAsyncMetadataRequest.put("epgMaxTime", epgMaxTime);
 
-            if (lastUpdateEnabled) {
-                final long lastUpdate = mSharedPreferences.getLong(Constants.KEY_EPG_LAST_UPDATE, 0);
+            if (mSharedPreferences.getBoolean(Constants.KEY_EPG_LAST_UPDATE_ENABLED, true)) {
                 enableAsyncMetadataRequest.put("lastUpdate", lastUpdate);
-                Log.d(TAG, "Setting lastUpdate field to " + lastUpdate);
             } else {
                 Log.d(TAG, "Skipping lastUpdate field, disabled by preference");
             }
@@ -592,15 +582,9 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
             }
         }
 
-        // TODO: Looking this up for every event we process, we don't need to.
-        final boolean defaultPosterArtEnabled = mSharedPreferences.getBoolean(
-                Constants.KEY_EPG_DEFAULT_POSTER_ART_ENABLED,
-                mContext.getResources().getBoolean(R.bool.pref_default_epg_default_poster_art_enabled)
-        );
-
         if (message.containsKey(PROGRAM_IMAGE)) {
             values.put(TvContract.Programs.COLUMN_POSTER_ART_URI, message.getString(PROGRAM_IMAGE));
-        } else if(defaultPosterArtEnabled) {
+        } else if(mSharedPreferences.getBoolean(Constants.KEY_EPG_DEFAULT_POSTER_ART_ENABLED, false)) {
             values.put(TvContract.Programs.COLUMN_POSTER_ART_URI, "android.resource://" + BuildConfig.APPLICATION_ID + "/" + R.drawable.default_event_icon);
         }
 
