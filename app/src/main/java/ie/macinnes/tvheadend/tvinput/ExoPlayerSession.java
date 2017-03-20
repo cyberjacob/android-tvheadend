@@ -45,7 +45,7 @@ import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.text.CaptionStyleCompat;
-import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
@@ -152,7 +152,10 @@ public class ExoPlayerSession extends BaseSession implements ExoPlayer.EventList
         SharedPreferences sharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
-        boolean applyEmbeddedStyles = sharedPreferences.getBoolean(Constants.KEY_CAPTIONS_APPLY_EMBEDDED_STYLES, true);
+        final boolean applyEmbeddedStyles = sharedPreferences.getBoolean(
+                Constants.KEY_CAPTIONS_APPLY_EMBEDDED_STYLES,
+                mContext.getResources().getBoolean(R.bool.pref_default_captions_apply_embedded_styles)
+        );
 
         view.setStyle(captionStyleCompat);
         view.setVisibility(View.VISIBLE);
@@ -281,10 +284,10 @@ public class ExoPlayerSession extends BaseSession implements ExoPlayer.EventList
 
     // Misc Internal Methods
     private void buildExoPlayer() {
-        TrackSelection.Factory videoTrackSelectionFactory =
-                new AdaptiveVideoTrackSelection.Factory(null);
+        TrackSelection.Factory trackSelectionFactory =
+                new AdaptiveTrackSelection.Factory(null);
 
-        mTrackSelector = new TvheadendTrackSelector(videoTrackSelectionFactory);
+        mTrackSelector = new TvheadendTrackSelector(trackSelectionFactory);
 
         LoadControl loadControl = new DefaultLoadControl();
 
@@ -309,7 +312,10 @@ public class ExoPlayerSession extends BaseSession implements ExoPlayer.EventList
         SharedPreferences sharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
-        String streamProfile = sharedPreferences.getString(Constants.KEY_HTSP_STREAM_PROFILE, "htsp");
+        final String streamProfile = sharedPreferences.getString(
+                Constants.KEY_HTSP_STREAM_PROFILE,
+                mContext.getResources().getString(R.string.pref_default_htsp_stream_profile)
+        );
 
         // Produces DataSource instances through which media data is loaded.
         mDataSourceFactory = new HtspDataSource.Factory(mContext, mConnection, streamProfile);

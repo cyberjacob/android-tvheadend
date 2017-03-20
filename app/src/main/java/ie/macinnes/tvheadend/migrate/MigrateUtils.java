@@ -18,12 +18,10 @@ package ie.macinnes.tvheadend.migrate;
 import android.accounts.Account;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.support.v7.preference.PreferenceManager;
 import android.util.Log;
 
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.MiscUtils;
-import ie.macinnes.tvheadend.R;
 import ie.macinnes.tvheadend.account.AccountUtils;
 
 
@@ -35,10 +33,6 @@ public class MigrateUtils {
 
     public static void doMigrate(Context context) {
         Log.d(TAG, "doMigrate()");
-
-        // Set all default values
-        PreferenceManager.setDefaultValues(context, Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE,
-                                           R.xml.preferences, true);
 
         // Lookup the current version
         int currentApplicationVersion = Constants.MIGRATE_VERSION;

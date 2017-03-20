@@ -26,6 +26,7 @@ import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.audio.AudioCapabilities;
+import com.google.android.exoplayer2.audio.AudioProcessor;
 import com.google.android.exoplayer2.audio.AudioRendererEventListener;
 import com.google.android.exoplayer2.audio.MediaCodecAudioRenderer;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
@@ -41,6 +42,7 @@ import com.google.android.exoplayer2.video.VideoRendererEventListener;
 import java.util.ArrayList;
 
 import ie.macinnes.tvheadend.Constants;
+import ie.macinnes.tvheadend.R;
 
 
 public class SimpleTvheadendPlayer extends SimpleExoPlayer {
@@ -54,26 +56,32 @@ public class SimpleTvheadendPlayer extends SimpleExoPlayer {
 
     @Override
     protected void buildAudioRenderers(Context context, Handler mainHandler, DrmSessionManager<FrameworkMediaCrypto> drmSessionManager,
-                                       int extensionRendererMode, AudioRendererEventListener eventListener, ArrayList<Renderer> out) {
+                                       int extensionRendererMode, AudioRendererEventListener eventListener, AudioProcessor[] audioProcessors,
+                                       ArrayList<Renderer> out) {
         AudioCapabilities audioCapabilities = AudioCapabilities.getCapabilities(context);
 
         SharedPreferences sharedPreferences = context.getSharedPreferences(Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
-        final boolean enablePassthroughDecoder = sharedPreferences.getBoolean(Constants.KEY_AUDIO_PASSTHROUGH_DECODER_ENABLED, true);
 
-        // Some devices are failing if the FfmpegAudioRenderer isn't listed first. However, this
-        // breaks AC3/5.1 passthrough. For now, put Ffmpeg first until we resolve the issue.
-
-        // FFMpeg Audio Decoder
-        if (sharedPreferences.getBoolean(Constants.KEY_FFMPEG_AUDIO_ENABLED, true)) {
-            Log.d(TAG, "Adding FfmpegAudioRenderer");
-            out.add(new FfmpegAudioRenderer(mainHandler, eventListener, audioCapabilities));
-        }
+        final boolean enablePassthroughDecoder = sharedPreferences.getBoolean(
+                Constants.KEY_AUDIO_PASSTHROUGH_DECODER_ENABLED,
+                context.getResources().getBoolean(R.bool.pref_default_audio_passthrough_decodeder_enabled));
 
         // Native Audio Decoders
         Log.d(TAG, "Adding MediaCodecAudioRenderer");
         MediaCodecSelector mediaCodecSelector = buildMediaCodecSelector(enablePassthroughDecoder);
         out.add(new MediaCodecAudioRenderer(mediaCodecSelector, drmSessionManager,
                 true, mainHandler, eventListener, audioCapabilities));
+
+        // FFMpeg Audio Decoder
+        final boolean enableFfmpegAudioRenderer = sharedPreferences.getBoolean(
+                Constants.KEY_FFMPEG_AUDIO_ENABLED,
+                context.getResources().getBoolean(R.bool.pref_default_audio_ffmpeg_audio_enabled)
+        );
+
+        if (enableFfmpegAudioRenderer) {
+            Log.d(TAG, "Adding FfmpegAudioRenderer");
+            out.add(new FfmpegAudioRenderer(mainHandler, eventListener, audioProcessors));
+        }
     }
 
     /**
@@ -105,7 +113,12 @@ public class SimpleTvheadendPlayer extends SimpleExoPlayer {
                                        ArrayList<Renderer> out) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
-        if (Build.MODEL.equals("SHIELD Android TV") && sharedPreferences.getBoolean(Constants.KEY_SHIELD_WORKAROUND_ENABLED, true)) {
+        final boolean enableShieldWorkaround = sharedPreferences.getBoolean(
+                Constants.KEY_SHIELD_WORKAROUND_ENABLED,
+                context.getResources().getBoolean(R.bool.pref_default_shield_workaround_enabled)
+        );
+
+        if (Build.MODEL.equals("SHIELD Android TV") && enableShieldWorkaround) {
             Log.d(TAG, "Adding ShieldVideoRenderer");
             out.add(new ShieldVideoRenderer(
                     context,
