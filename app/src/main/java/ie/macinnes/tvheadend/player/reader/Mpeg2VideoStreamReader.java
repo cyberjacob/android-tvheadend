@@ -19,7 +19,6 @@ package ie.macinnes.tvheadend.player.reader;
 import android.content.Context;
 import android.support.annotation.NonNull;
 
-import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.util.MimeTypes;
 
@@ -45,10 +44,5 @@ public class Mpeg2VideoStreamReader extends PlainStreamReader {
                 StreamReaderUtils.frameDurationToFrameRate(stream.getInteger("duration", Format.NO_VALUE)),
                 null,
                 null);
-    }
-
-    @Override
-    protected int getTrackType() {
-        return C.TRACK_TYPE_VIDEO;
     }
 }

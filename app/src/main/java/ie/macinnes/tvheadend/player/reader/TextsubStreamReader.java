@@ -73,7 +73,7 @@ public class TextsubStreamReader implements StreamReader {
     @Override
     public final void createTracks(@NonNull HtspMessage stream, @NonNull ExtractorOutput output) {
         final int streamIndex = stream.getInteger("index");
-        mTrackOutput = output.track(streamIndex, C.TRACK_TYPE_TEXT);
+        mTrackOutput = output.track(streamIndex);
         mTrackOutput.format(buildFormat(streamIndex, stream));
     }
 
