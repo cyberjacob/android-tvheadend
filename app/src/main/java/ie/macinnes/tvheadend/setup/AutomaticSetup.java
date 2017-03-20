@@ -36,6 +36,7 @@ import ie.macinnes.htsp.tasks.Authenticator;
 import ie.macinnes.tvheadend.BuildConfig;
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.MiscUtils;
+import ie.macinnes.tvheadend.TvContractUtils;
 import ie.macinnes.tvheadend.sync.EpgSyncService;
 import ie.macinnes.tvheadend.sync.EpgSyncTask;
 
@@ -69,6 +70,8 @@ public class AutomaticSetup {
 
     void startSetup() {
         setState(State.STARTING);
+
+        TvContractUtils.removeChannels(mContext);
 
         HtspConnection.ConnectionDetails connectionDetails = new HtspConnection.ConnectionDetails(accountHostname, accountHtspPort, accountName, accountPassword, "android-tvheadend (auth)", BuildConfig.VERSION_NAME);
         SimpleHtspConnection mConnection = new SimpleHtspConnection(connectionDetails);
