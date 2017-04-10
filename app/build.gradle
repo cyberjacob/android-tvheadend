@@ -68,15 +68,15 @@ repositories {
 }
 
 dependencies {
-    compile 'ie.macinnes.htsp:android-htsp:v0.0.1a19'
+    compile 'ie.macinnes.htsp:android-htsp:v0.0.1a22'
     // Used for testing local HTSP lib builds
 //    compile(name: 'library-debug', ext: 'aar')
     compile fileTree(include: ['*.jar'], dir: 'libs')
     // Used for testing local libvlc builds
 //    compile(name: 'vlc-android-sdk-release', ext: 'aar')
-    compile 'com.android.support:support-v4:25.3.0'
-    compile 'com.android.support:leanback-v17:25.3.0'
-    compile 'com.android.support:preference-leanback-v17:25.3.0'
+    compile 'com.android.support:support-v4:25.3.1'
+    compile 'com.android.support:leanback-v17:25.3.1'
+    compile 'com.android.support:preference-leanback-v17:25.3.1'
     compile 'com.google.android.exoplayer:exoplayer:r2.3.0k1'
     compile 'com.google.android.exoplayer:extension-ffmpeg:r2.3.0k1'
     // Used for testing local exoplayer builds
@@ -85,7 +85,7 @@ dependencies {
 //    compile(name: 'extension-ffmpeg-debug', ext: 'aar')
     compile 'ch.acra:acra:4.9.2'
 
-    debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5'
+    debugCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
     releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
     testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
 }
