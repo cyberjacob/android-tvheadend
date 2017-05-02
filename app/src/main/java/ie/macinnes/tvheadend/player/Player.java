@@ -21,13 +21,14 @@ import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.media.tv.TvTrackInfo;
 import android.net.Uri;
-import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
+import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.CaptioningManager;
+import android.widget.TextView;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultLoadControl;
@@ -36,7 +37,9 @@ import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.LoadControl;
+import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.RendererCapabilities;
+import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.extractor.ExtractorsFactory;
@@ -49,8 +52,8 @@ import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.ui.DebugTextViewHelper;
 import com.google.android.exoplayer2.ui.SubtitleView;
-import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultAllocator;
 import com.google.android.exoplayer2.util.MimeTypes;
 
@@ -58,7 +61,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ie.macinnes.htsp.SimpleHtspConnection;
-import ie.macinnes.tvheadend.Application;
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.R;
 
@@ -100,10 +102,16 @@ public class Player implements ExoPlayer.EventListener {
     private final SharedPreferences mSharedPreferences;
 
     private SimpleExoPlayer mExoPlayer;
+    private RenderersFactory mRenderersFactory;
     private TvheadendTrackSelector mTrackSelector;
+    private LoadControl mLoadControl;
     private EventLogger mEventLogger;
-    private DataSource.Factory mDataSourceFactory;
+    private HtspDataSource.Factory mDataSourceFactory;
     private ExtractorsFactory mExtractorsFactory;
+
+    private View mOverlayView;
+    private DebugTextViewHelper mDebugViewHelper;
+    private SubtitleView mSubtitleView;
 
     private MediaSource mMediaSource;
 
@@ -133,6 +141,14 @@ public class Player implements ExoPlayer.EventListener {
         // Stop any existing playback
         stop();
 
+        if (mDebugViewHelper != null) {
+            mDebugViewHelper.stop();
+            mDebugViewHelper = null;
+        }
+
+        mSubtitleView = null;
+        mOverlayView = null;
+
         // Release ExoPlayer
         mExoPlayer.removeListener(this);
         mExoPlayer.release();
@@ -161,17 +177,57 @@ public class Player implements ExoPlayer.EventListener {
     public void stop() {
         mExoPlayer.stop();
         mTrackSelector.clearSelectionOverrides();
+        mDataSourceFactory.releaseCurrentDataSource();
 
         if (mMediaSource != null) {
             mMediaSource.releaseSource();
-
-            // Watch for memory leaks
-            Application.getRefWatcher(mContext).watch(mMediaSource);
         }
     }
 
-    public View getSubtitleView(CaptioningManager.CaptionStyle captionStyle, float fontScale) {
-        SubtitleView view = new SubtitleView(mContext);
+    public View getOverlayView(CaptioningManager.CaptionStyle captionStyle, float fontScale) {
+        if (mOverlayView == null) {
+            LayoutInflater lI = (LayoutInflater) mContext.getSystemService(
+                    Context.LAYOUT_INFLATER_SERVICE);
+            mOverlayView = lI.inflate(R.layout.player_overlay_view, null);
+        }
+
+        if (mDebugViewHelper == null) {
+            mDebugViewHelper = getDebugTextView();
+
+            if (mDebugViewHelper != null) {
+                mDebugViewHelper.start();
+            }
+        }
+
+        if (mSubtitleView == null) {
+            mSubtitleView = getSubtitleView(captionStyle, fontScale);
+
+            if (mSubtitleView != null) {
+                mExoPlayer.setTextOutput(mSubtitleView);
+            }
+        }
+
+        return mOverlayView;
+    }
+
+    private DebugTextViewHelper getDebugTextView() {
+        final boolean enableDebugTextView = mSharedPreferences.getBoolean(
+                Constants.KEY_DEBUG_TEXT_VIEW_ENABLED,
+                mContext.getResources().getBoolean(R.bool.pref_default_debug_text_view_enabled)
+        );
+
+        if (enableDebugTextView) {
+            TextView textView = (TextView) mOverlayView.findViewById(R.id.debug_text_view);
+            textView.setVisibility(View.VISIBLE);
+            return new DebugTextViewHelper(
+                    mExoPlayer, textView);
+        } else {
+            return null;
+        }
+    }
+
+    private SubtitleView getSubtitleView(CaptioningManager.CaptionStyle captionStyle, float fontScale) {
+        SubtitleView view = (SubtitleView) mOverlayView.findViewById(R.id.subtitle_view);
 
         CaptionStyleCompat captionStyleCompat = CaptionStyleCompat.createFromCaptionStyle(captionStyle);
 
@@ -188,8 +244,6 @@ public class Player implements ExoPlayer.EventListener {
         view.setFixedTextSize(TEXT_UNIT_PIXELS, captionTextSize);
         view.setApplyEmbeddedStyles(applyEmbeddedStyles);
 
-        mExoPlayer.setTextOutput(view);
-
         return view;
     }
 
@@ -198,16 +252,11 @@ public class Player implements ExoPlayer.EventListener {
         TrackSelection.Factory trackSelectionFactory =
                 new AdaptiveTrackSelection.Factory(null);
 
+        mRenderersFactory = new TvheadendRenderersFactory(mContext);
         mTrackSelector = new TvheadendTrackSelector(trackSelectionFactory);
+        mLoadControl = buildLoadControl();
 
-        LoadControl loadControl = buildLoadControl();
-
-        int extensionRendererMode = SimpleExoPlayer.EXTENSION_RENDERER_MODE_PREFER;
-
-        mExoPlayer = new SimpleTvheadendPlayer(
-                mContext, mTrackSelector, loadControl, null, extensionRendererMode,
-                ExoPlayerFactory.DEFAULT_ALLOWED_VIDEO_JOINING_TIME_MS);
-
+        mExoPlayer = ExoPlayerFactory.newSimpleInstance(mRenderersFactory, mTrackSelector, mLoadControl);
         mExoPlayer.addListener(this);
 
         // Add the EventLogger
@@ -343,6 +392,11 @@ public class Player implements ExoPlayer.EventListener {
 
     @Override
     public void onPositionDiscontinuity() {
+
+    }
+
+    @Override
+    public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
 
     }
 }
