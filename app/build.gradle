@@ -19,6 +19,9 @@ android {
         multiDexEnabled true
 
         setProperty("archivesBaseName", applicationId)
+
+        buildConfigField "boolean", "ACRA_ENABLED", "false"
+        buildConfigField "String", "ACRA_REPORT_URI", "\"\""
     }
 
     signingConfigs {
