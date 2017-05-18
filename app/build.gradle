@@ -1,3 +1,7 @@
+plugins {
+    id 'com.gladed.androidgitversion' version '0.3.4'
+}
+
 apply plugin: 'com.android.application'
 
 android {
@@ -9,26 +13,20 @@ android {
         minSdkVersion project.ext.minSdkVersion
         targetSdkVersion project.ext.targetSdkVersion
 
-        versionCode System.getenv("APP_VERSION_CODE") as Integer ?: 0
-        versionName project.ext.gitVersionName
+        versionCode androidGitVersion.code()
+        versionName androidGitVersion.name()
+
+        multiDexEnabled true
 
         setProperty("archivesBaseName", applicationId)
-
-        buildConfigField "boolean", "ACRA_ENABLED", "false"
-        buildConfigField "String", "ACRA_REPORT_URI", "\"\""
     }
 
     signingConfigs {
-        if (rootProject.file("keystore.properties").exists()) {
-            def keystoreProperties = new Properties()
-            keystoreProperties.load(new FileInputStream(rootProject.file("keystore.properties")))
-
-            release {
-                storeFile new File(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-            }
+       release {
+            storeFile file("../android-keystore/keystore.jks")
+            storePassword System.getenv('keystore_password')
+            keyAlias "key0"
+            keyPassword System.getenv('keystore_password')
         }
     }
 
@@ -40,16 +38,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
 
-            if (signingConfigs.hasProperty("release")) {
-                signingConfig signingConfigs.release
-            }
-
-            if (rootProject.file("acra.properties").exists()) {
-                buildConfigField "boolean", "ACRA_ENABLED", "true"
-                def acraProperties = new Properties()
-                acraProperties.load(new FileInputStream(rootProject.file("acra.properties")))
-                buildConfigField "String", "ACRA_REPORT_URI", "\"" + acraProperties.report_uri + "\""
-            }
+            signingConfig signingConfigs.release
         }
     }
 
