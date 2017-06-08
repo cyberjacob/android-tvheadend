@@ -24,7 +24,6 @@ import android.media.tv.TvTrackInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
-import android.os.Message;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.util.SparseArray;
@@ -35,6 +34,7 @@ import android.widget.Toast;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
