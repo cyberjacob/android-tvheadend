@@ -354,10 +354,4 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
             super(message, cause);
         }
     }
-
-    private class HtspOutOfMemoryError extends RuntimeException {
-        HtspOutOfMemoryError(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
 }
