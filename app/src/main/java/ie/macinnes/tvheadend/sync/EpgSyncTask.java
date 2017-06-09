@@ -114,7 +114,6 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
     private final SharedPreferences mSharedPreferences;
     private final ContentResolver mContentResolver;
 
-    private final HandlerThread mHandlerThread;
     private final Handler mHandler;
 
     private final Set<Listener> mListeners = new CopyOnWriteArraySet<>();
@@ -180,7 +179,7 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
 
         mContentResolver = context.getContentResolver();
 
-        mHandlerThread = new HandlerThread("EpgSyncService Handler Thread");
+        HandlerThread mHandlerThread = new HandlerThread("EpgSyncService Handler Thread");
         mHandlerThread.start();
         mHandler = new Handler(mHandlerThread.getLooper());
 
