@@ -66,7 +66,7 @@ abstract class PlainStreamReader implements StreamReader {
     }
 
     @NonNull
-    abstract protected Format buildFormat(int streamIndex, @NonNull HtspMessage stream);
+    protected abstract Format buildFormat(int streamIndex, @NonNull HtspMessage stream);
 
-    abstract protected int getTrackType();
+    protected abstract int getTrackType();
 }
