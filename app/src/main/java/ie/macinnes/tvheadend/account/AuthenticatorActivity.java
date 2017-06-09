@@ -65,7 +65,7 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity {
         }
     }
 
-    public static abstract class BaseGuidedStepFragment extends GuidedStepFragment {
+    public abstract static class BaseGuidedStepFragment extends GuidedStepFragment {
         protected AccountManager mAccountManager;
 
         @Override

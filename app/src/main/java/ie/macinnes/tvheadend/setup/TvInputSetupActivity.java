@@ -58,7 +58,7 @@ public class TvInputSetupActivity extends Activity {
         GuidedStepFragment.addAsRoot(this, fragment, android.R.id.content);
     }
 
-    public static abstract class BaseGuidedStepFragment extends GuidedStepFragment {
+    public abstract static class BaseGuidedStepFragment extends GuidedStepFragment {
         protected AccountManager mAccountManager;
 
         protected static Account sAccount;
