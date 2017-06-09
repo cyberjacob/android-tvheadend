@@ -20,7 +20,6 @@ import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -107,16 +106,12 @@ public class AutomaticSetup {
 
                     userdata.putString(Constants.KEY_HOSTNAME, accountHostname);
                     userdata.putString(Constants.KEY_HTSP_PORT, String.valueOf(accountHtspPort));
-                    //userdata.putString(Constants.KEY_HTTP_PORT, String.valueOf(accountHttpPort));
-                    //userdata.putString(Constants.KEY_HTTP_PATH, accountHttpPath);
 
                     mAccountManager.addAccountExplicitly(account, accountPassword, userdata);
 
                     // Store the result, with the username too
                     userdata.putString(Constants.KEY_USERNAME, accountName);
 
-                    // Move to the CompletedFragment
-                    completeSetup();
                 } else if (state == Authenticator.State.FAILED) {
                     // Close the connection, it's no longer needed
                     mConnection.stop();
@@ -160,18 +155,6 @@ public class AutomaticSetup {
         mConnection.addMessageListener(mEpgSyncTask);
 
         mConnection.start();
-    }
-
-    private void completeSetup() {
-        ////String session = Constants.SESSION_MEDIA_PLAYER;
-        //String session = Constants.SESSION_EXO_PLAYER;
-
-        //SharedPreferences sharedPreferences = mContext.getSharedPreferences(
-        //        Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
-
-        //SharedPreferences.Editor editor = sharedPreferences.edit();
-        //editor.putString(Constants.KEY_SESSION, session);
-        //editor.apply();
     }
 
     interface Listener {
