@@ -137,7 +137,7 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
             // enough memory to catch and throw this exception. We do this, as each OOM exception
             // message is unique (lots of #'s of bytes available/used/etc) and means crash reporting
             // doesn't group things nicely.
-            throw new HtspOutOfMemoryError("OutOfMemoryError when allocating HtspDataSource buffer ("+mDataSourceNumber+")", e);
+            throw new RuntimeException("OutOfMemoryError when allocating HtspDataSource buffer ("+mDataSourceNumber+")", e);
         }
 
         mSubscriber = new Subscriber(mConnection);
@@ -346,18 +346,6 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
             } catch (IOException ex) {
                 // Ignore
             }
-        }
-    }
-
-    private class HtspOutOfMemoryError extends RuntimeException {
-        HtspOutOfMemoryError(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
-
-    private class HtspOutOfMemoryError extends RuntimeException {
-        HtspOutOfMemoryError(String message, Throwable cause) {
-            super(message, cause);
         }
     }
 }
