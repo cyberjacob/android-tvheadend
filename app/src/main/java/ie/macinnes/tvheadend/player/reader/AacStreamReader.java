@@ -89,7 +89,7 @@ public class AacStreamReader implements StreamReader {
 
     @NonNull
     protected Format buildFormat(int streamIndex, @NonNull HtspMessage stream) {
-        List<byte[]> initializationData = null;
+        List<byte[]> initializationData;
 
         int rate = Format.NO_VALUE;
         if (stream.containsKey("rate")) {
