@@ -94,7 +94,6 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
     private SimpleHtspConnection mConnection;
     private String mStreamProfile;
 
-    private final SharedPreferences mSharedPreferences;
     private int mTimeshiftPeriod = 0;
 
     private final int mDataSourceNumber;
@@ -113,7 +112,7 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
         mConnection = connection;
         mStreamProfile = streamProfile;
 
-        mSharedPreferences = mContext.getSharedPreferences(
+        SharedPreferences mSharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
         boolean timeshiftEnabled = mSharedPreferences.getBoolean(
