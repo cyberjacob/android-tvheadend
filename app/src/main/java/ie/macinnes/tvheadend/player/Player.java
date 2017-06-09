@@ -108,7 +108,6 @@ public class Player implements ExoPlayer.EventListener {
     private final SharedPreferences mSharedPreferences;
 
     private SimpleExoPlayer mExoPlayer;
-    private RenderersFactory mRenderersFactory;
     private TvheadendTrackSelector mTrackSelector;
     private LoadControl mLoadControl;
     private EventLogger mEventLogger;
@@ -364,7 +363,7 @@ public class Player implements ExoPlayer.EventListener {
         TrackSelection.Factory trackSelectionFactory =
                 new AdaptiveTrackSelection.Factory(null);
 
-        mRenderersFactory = new TvheadendRenderersFactory(mContext);
+        RenderersFactory mRenderersFactory = new TvheadendRenderersFactory(mContext);
         mTrackSelector = new TvheadendTrackSelector(trackSelectionFactory);
         mLoadControl = buildLoadControl();
 
