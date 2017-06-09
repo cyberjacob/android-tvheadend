@@ -37,7 +37,7 @@ public class VorbisStreamReader extends PlainStreamReader {
     private static final String VORBIS_CODEC_ERROR_MESSAGE = "Error parsing vorbis codec private: ";
 
     public VorbisStreamReader(Context context) {
-        super(context);
+        super(context, C.TRACK_TYPE_AUDIO);
     }
 
     @NonNull

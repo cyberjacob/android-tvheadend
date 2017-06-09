@@ -56,6 +56,7 @@ import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.ui.DebugTextViewHelper;
 import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.upstream.DefaultAllocator;
@@ -356,11 +357,8 @@ public class Player implements ExoPlayer.EventListener {
 
     // Misc Internal Methods
     private void buildExoPlayer() {
-        TrackSelection.Factory trackSelectionFactory =
-                new AdaptiveTrackSelection.Factory(null);
-
         RenderersFactory mRenderersFactory = new TvheadendRenderersFactory(mContext);
-        mTrackSelector = new TvheadendTrackSelector(trackSelectionFactory);
+        mTrackSelector = buildTrackSelector();
         LoadControl mLoadControl = buildLoadControl();
 
         mExoPlayer = ExoPlayerFactory.newSimpleInstance(mRenderersFactory, mTrackSelector, mLoadControl);
@@ -382,6 +380,16 @@ public class Player implements ExoPlayer.EventListener {
 
         // Produces Extractor instances for parsing the media data.
         mExtractorsFactory = new HtspExtractor.Factory(mContext);
+    }
+
+    private TvheadendTrackSelector buildTrackSelector() {
+        TrackSelection.Factory trackSelectionFactory =
+                new AdaptiveTrackSelection.Factory(null);
+
+        TvheadendTrackSelector trackSelector = new TvheadendTrackSelector(trackSelectionFactory);
+        trackSelector.setTunnelingAudioSessionId(C.generateAudioSessionIdV21(mContext));
+
+        return trackSelector;
     }
 
     private LoadControl buildLoadControl() {

@@ -4,6 +4,8 @@ plugins {
 
 apply plugin: 'com.android.application'
 
+apply from: '../release.gradle'
+
 android {
     compileSdkVersion project.ext.compileSdkVersion
     buildToolsVersion project.ext.buildToolsVersion
