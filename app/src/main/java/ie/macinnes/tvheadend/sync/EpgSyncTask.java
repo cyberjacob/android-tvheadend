@@ -455,9 +455,10 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
             final Uri channelLogoDestUri = TvContract.buildChannelLogoUri(androidChannelId);
 
             InputStream is = null;
-            OutputStream os = null;
 
-            try {
+            try (
+                    OutputStream os = mContentResolver.openOutputStream(channelLogoDestUri)
+            ) {
                 final String logoScheme = channelLogoSourceUri.getScheme();
                 if (logoScheme != null && (logoScheme.equalsIgnoreCase("http") || logoScheme.equalsIgnoreCase("https"))) {
                     is = new URL(channelLogoSourceUri.toString()).openStream();
@@ -465,7 +466,7 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
                     is = new HtspFileInputStream(mDispatcher, channelLogoSourceUri.getPath());
                 }
 
-                os = mContentResolver.openOutputStream(channelLogoDestUri);
+
 
                 int read;
                 int totalRead = 0;
@@ -484,13 +485,6 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
                 if (is != null) {
                     try {
                         is.close();
-                    } catch (IOException e) {
-                        // Ignore...
-                    }
-                }
-                if (os != null) {
-                    try {
-                        os.close();
                     } catch (IOException e) {
                         // Ignore...
                     }
