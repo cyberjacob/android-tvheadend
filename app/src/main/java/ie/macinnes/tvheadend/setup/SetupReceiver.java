@@ -27,6 +27,8 @@ import ie.macinnes.tvheadend.Constants;
 
 public class SetupReceiver extends BroadcastReceiver {
     private static final String TAG = "SetupReceiver";
+    private static final String SUCCESS_MESSAGE = "Automatic setup succeeded!";
+    private static final String FAILURE_MESSAGE = "Automatic setup failed!";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -37,12 +39,16 @@ public class SetupReceiver extends BroadcastReceiver {
         String accountHostname = intent.getStringExtra(Constants.KEY_HOSTNAME);
         int accountHtspPort = intent.getIntExtra(Constants.KEY_HTSP_PORT, -1);
         if (accountName == null) {
+            Log.i(TAG, FAILURE_MESSAGE);
             throw new IllegalArgumentException("account name cannot be null");
         } else if (accountPassword == null) {
+            Log.i(TAG, FAILURE_MESSAGE);
             throw new IllegalArgumentException("account password cannot be null");
         } else if (accountHostname == null) {
+            Log.i(TAG, FAILURE_MESSAGE);
             throw new IllegalArgumentException("account hostname cannot be null");
         } else if (accountHtspPort == -1) {
+            Log.i(TAG, FAILURE_MESSAGE);
             throw new IllegalArgumentException("account HTSP port cannot be null");
         }
 
@@ -69,11 +75,12 @@ public class SetupReceiver extends BroadcastReceiver {
 
             if (state == AutomaticSetup.State.FAILED) {
                 Log.e(TAG, "Automatic setup failed!");
+                Log.i(TAG, FAILURE_MESSAGE);
                 Intent failureIntent = new Intent();
                 failureIntent.setAction("ie.macinnes.tvheadend.autoSetup.failure");
                 mContext.sendBroadcast(failureIntent);
             } else if (state == AutomaticSetup.State.COMPLETE) {
-                Log.i(TAG, "Automatic setup succeeded!");
+                Log.i(TAG, SUCCESS_MESSAGE);
                 Intent successIntent = new Intent();
                 successIntent.setAction("ie.macinnes.tvheadend.autoSetup.success");
                 mContext.sendBroadcast(successIntent);
