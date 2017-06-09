@@ -110,7 +110,6 @@ public class Player implements ExoPlayer.EventListener {
 
     private SimpleExoPlayer mExoPlayer;
     private TvheadendTrackSelector mTrackSelector;
-    private LoadControl mLoadControl;
     private EventLogger mEventLogger;
     private HtspDataSource.Factory mDataSourceFactory;
     private ExtractorsFactory mExtractorsFactory;
@@ -348,10 +347,9 @@ public class Player implements ExoPlayer.EventListener {
 
     // Misc Internal Methods
     private void buildExoPlayer() {
-        mRenderersFactory = new TvheadendRenderersFactory(mContext);
-        mTrackSelector = buildTrackSelector();
-
-        mLoadControl = buildLoadControl();
+        RenderersFactory mRenderersFactory = new TvheadendRenderersFactory(mContext);
+        mTrackSelector = new TvheadendTrackSelector(trackSelectionFactory);
+        LoadControl mLoadControl = buildLoadControl();
 
         mExoPlayer = ExoPlayerFactory.newSimpleInstance(mRenderersFactory, mTrackSelector, mLoadControl);
         mExoPlayer.addListener(this);
