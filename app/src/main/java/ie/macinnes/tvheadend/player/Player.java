@@ -301,10 +301,7 @@ public class Player implements ExoPlayer.EventListener {
 
         if (mSubtitleView == null) {
             mSubtitleView = getSubtitleView(captionStyle, fontScale);
-
-            if (mSubtitleView != null) {
-                mExoPlayer.setTextOutput(mSubtitleView);
-            }
+            mExoPlayer.setTextOutput(mSubtitleView);
         }
 
         return mOverlayView;
