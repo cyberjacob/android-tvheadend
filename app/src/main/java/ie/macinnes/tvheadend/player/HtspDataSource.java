@@ -325,7 +325,7 @@ public class HtspDataSource implements DataSource, Subscriber.Listener, Closeabl
 
         mLock.lock();
         try (
-                ObjectOutputStream objectOutput = new ObjectOutputStream(outputStream);
+                ObjectOutputStream objectOutput = new ObjectOutputStream(outputStream)
         ) {
             objectOutput.writeUnshared(message);
             objectOutput.flush();
