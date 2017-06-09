@@ -36,8 +36,6 @@ public class SetupReceiver extends BroadcastReceiver {
         String accountPassword = intent.getStringExtra(Constants.KEY_PASSWORD);
         String accountHostname = intent.getStringExtra(Constants.KEY_HOSTNAME);
         int accountHtspPort = intent.getIntExtra(Constants.KEY_HTSP_PORT, -1);
-        //int accountHttpPort = intent.getIntExtra(Constants.KEY_HTTP_PORT, -1);
-        //String accountHttpPath = intent.getStringExtra(Constants.KEY_HTTP_PATH);
         if (accountName == null) {
             throw new IllegalArgumentException("account name cannot be null");
         } else if (accountPassword == null) {
@@ -46,13 +44,9 @@ public class SetupReceiver extends BroadcastReceiver {
             throw new IllegalArgumentException("account hostname cannot be null");
         } else if (accountHtspPort == -1) {
             throw new IllegalArgumentException("account HTSP port cannot be null");
-        //} else if (accountHttpPort == -1) {
-        //    throw new IllegalArgumentException("account HTTP port cannot be null");
-        //} else if (accountHttpPath == null) {
-        //    accountHttpPath = "/";
         }
 
-        AutomaticSetup automaticSetup = new AutomaticSetup(context, accountName, accountPassword, accountHostname, accountHtspPort);//, accountHttpPort, accountHttpPath);
+        AutomaticSetup automaticSetup = new AutomaticSetup(context, accountName, accountPassword, accountHostname, accountHtspPort);
         automaticSetup.addSetupListener(new SetupListener(context));
         automaticSetup.startSetup();
     }
