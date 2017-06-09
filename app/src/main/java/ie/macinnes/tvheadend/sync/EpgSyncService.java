@@ -48,9 +48,6 @@ public class EpgSyncService extends Service {
     protected SimpleHtspConnection mConnection;
     protected EpgSyncTask mEpgSyncTask;
 
-    public EpgSyncService() {
-    }
-
     @Override
     public IBinder onBind(Intent intent) {
         throw new UnsupportedOperationException("Binding not allowed");

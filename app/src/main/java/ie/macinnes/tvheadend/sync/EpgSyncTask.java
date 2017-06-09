@@ -249,7 +249,6 @@ public class EpgSyncTask implements HtspMessage.Listener, Authenticator.Listener
                 mDispatcher.sendMessage(enableAsyncMetadataRequest);
             } catch (HtspNotConnectedException e) {
                 Log.d(TAG, "Failed to enable async metadata, HTSP not connected", e);
-                return;
             }
         }
     }

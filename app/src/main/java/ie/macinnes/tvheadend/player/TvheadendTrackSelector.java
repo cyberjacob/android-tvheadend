@@ -37,9 +37,6 @@ public class TvheadendTrackSelector extends DefaultTrackSelector {
     private String mAudioTrackId;
     private String mSubtitleTrackId;
 
-    public TvheadendTrackSelector() {
-    }
-
     public TvheadendTrackSelector(TrackSelection.Factory adaptiveVideoTrackSelectionFactory) {
         super(adaptiveVideoTrackSelectionFactory);
     }
