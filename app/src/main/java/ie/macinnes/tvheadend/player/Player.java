@@ -112,7 +112,7 @@ public class Player implements ExoPlayer.EventListener {
     private TvheadendTrackSelector mTrackSelector;
     private LoadControl mLoadControl;
     private EventLogger mEventLogger;
-    private HtspDataSource.Factory mDataSourceFactory;
+    private HtspDataSource.HtspFactory mDataSourceHtspFactory;
     private ExtractorsFactory mExtractorsFactory;
 
     private View mOverlayView;
@@ -200,6 +200,7 @@ public class Player implements ExoPlayer.EventListener {
         }
     }
 
+    //TODO: Never used, check if this is still needed
     public void seek(long timeMs) {
         if (mSubscriber != null) {
             Log.d(TAG, "Seeking to time: " + timeMs);
@@ -212,6 +213,7 @@ public class Player implements ExoPlayer.EventListener {
         }
     }
 
+    //TODO: Never used, check if this is still needed
     @RequiresApi(api = Build.VERSION_CODES.M)
     public void setPlaybackParams(PlaybackParams params) {
         float rawSpeed = params.getSpeed();
@@ -262,7 +264,7 @@ public class Player implements ExoPlayer.EventListener {
     public void stop() {
         mExoPlayer.stop();
         mTrackSelector.clearSelectionOverrides();
-        mDataSourceFactory.releaseCurrentDataSource();
+        mDataSourceHtspFactory.releaseCurrentDataSource();
 
         if (mMediaSource != null) {
             mMediaSource.releaseSource();
@@ -381,7 +383,7 @@ public class Player implements ExoPlayer.EventListener {
         );
 
         // Produces DataSource instances through which media data is loaded.
-        mDataSourceFactory = new HtspDataSource.Factory(mContext, mConnection, streamProfile);
+        mDataSourceHtspFactory = new HtspDataSource.HtspFactory(mContext, mConnection, streamProfile);
 
         // Produces Extractor instances for parsing the media data.
         mExtractorsFactory = new HtspExtractor.Factory(mContext);
@@ -407,7 +409,7 @@ public class Player implements ExoPlayer.EventListener {
     private void buildHtspMediaSource(Uri channelUri) {
         // This is the MediaSource representing the media to be played.
         mMediaSource = new ExtractorMediaSource(channelUri,
-                mDataSourceFactory, mExtractorsFactory, null, mEventLogger);
+                mDataSourceHtspFactory, mExtractorsFactory, null, mEventLogger);
     }
 
     private float getCaptionFontSize() {
@@ -431,6 +433,7 @@ public class Player implements ExoPlayer.EventListener {
         // Don't care about this event here
     }
 
+    //TODO: This should probably be simplified
     @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
         MappingTrackSelector.MappedTrackInfo mappedTrackInfo = mTrackSelector.getCurrentMappedTrackInfo();
@@ -463,6 +466,7 @@ public class Player implements ExoPlayer.EventListener {
                                 if (selected) {
                                     int trackType = MimeTypes.getTrackType(format.sampleMimeType);
 
+                                    //TODO: Default case
                                     switch (trackType) {
                                         case C.TRACK_TYPE_VIDEO:
                                             selectedTracks.put(TvTrackInfo.TYPE_VIDEO, format.id);
@@ -489,7 +493,7 @@ public class Player implements ExoPlayer.EventListener {
     public void onLoadingChanged(boolean isLoading) {
         if (isLoading) {
             // Fetch the Subscriber for later use
-            HtspDataSource dataSource = mDataSourceFactory.getCurrentDataSource();
+            HtspDataSource dataSource = mDataSourceHtspFactory.getCurrentDataSource();
 
             if (dataSource != null) {
                 // TODO: Hold a WeakReference to the Subscriber instead...
