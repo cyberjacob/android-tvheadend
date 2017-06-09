@@ -428,7 +428,7 @@ public class Player implements ExoPlayer.EventListener {
     // ExoPlayer.EventListener Methods
     @Override
     public void onTimelineChanged(Timeline timeline, Object manifest) {
-
+        // Don't care about this event here
     }
 
     @Override
@@ -510,11 +510,11 @@ public class Player implements ExoPlayer.EventListener {
 
     @Override
     public void onPositionDiscontinuity() {
-
+        // Don't care about this event here
     }
 
     @Override
     public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
-
+        // Don't care about this event here
     }
 }
