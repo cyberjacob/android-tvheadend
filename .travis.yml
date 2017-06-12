@@ -37,3 +37,6 @@ addons:
     paths:
       - app/build/outputs/
       - app/build/reports/
+
+git:
+  submodules: false
