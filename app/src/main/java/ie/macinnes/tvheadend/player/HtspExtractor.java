@@ -105,11 +105,12 @@ public class HtspExtractor implements Extractor {
         if (Constants.DEBUG)
             Log.v(TAG, "Read " + bytesRead + " bytes");
 
-        try (
-                ByteArrayInputStream inputStream = new ByteArrayInputStream(mRawBytes, 0, bytesRead);
-                ObjectInputStream objectInput = new ObjectInputStream(inputStream)
-        ) {
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(mRawBytes, 0, bytesRead);
+        ObjectInputStream objectInput = null;
+
+        try {
             while (inputStream.available() > 0) {
+                objectInput = new ObjectInputStream(inputStream);
                 handleMessage((HtspMessage) objectInput.readUnshared());
             }
         } catch (IOException e) {
@@ -118,6 +119,19 @@ public class HtspExtractor implements Extractor {
             return RESULT_CONTINUE;
         } catch (ClassNotFoundException e) {
             Log.w(TAG, "Class Not Found");
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException ex) {
+                // Ignore
+            }
+            try {
+                if (objectInput != null) {
+                    objectInput.close();
+                }
+            } catch (IOException ex) {
+                // Ignore
+            }
         }
 
         return RESULT_CONTINUE;
