@@ -4,14 +4,14 @@ plugins {
 
 apply plugin: 'com.android.application'
 
-apply from: '../release.gradle'
-
 android {
     compileSdkVersion project.ext.compileSdkVersion
     buildToolsVersion project.ext.buildToolsVersion
 
     defaultConfig {
         applicationId "ie.macinnes.tvheadend"
+        setProperty("archivesBaseName", applicationId)
+
         minSdkVersion project.ext.minSdkVersion
         targetSdkVersion project.ext.targetSdkVersion
 
@@ -33,21 +33,26 @@ android {
             keyAlias "key0"
             keyPassword System.getenv('keystore_password')
         }
+
     }
 
     buildTypes {
         debug {
             versionNameSuffix "-SNAPSHOT"
+
+            buildConfigField "boolean", "ACRA_ENABLED", "false"
+            buildConfigField "String", "ACRA_REPORT_URI", "\"\""
         }
+
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
 
             signingConfig signingConfigs.release
-        }
-    }
 
-    productFlavors {
+            buildConfigField "boolean", "ACRA_ENABLED", "true"
+            buildConfigField "String", "ACRA_REPORT_URI", "\"" + System.getenv('acra_uri') + "\""
+        }
     }
 
     lintOptions {

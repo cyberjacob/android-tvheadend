@@ -15,16 +15,20 @@ def lint() {
 }
 
 def publishApkToStore(String trackName) {
-    def changeLog = sh(returnStdout: true, script: "./tools/generate-changelog").trim().take(500)
+    withCredentials([
+        [$class: 'FileBinding', credentialsId: 'android-keystore-tvheadend', variable: 'ANDROID_KEYSTORE'],
+        [$class: 'StringBinding', credentialsId: 'android-keystore-tvheadend-password', variable: 'ANDROID_KEYSTORE_PASSWORD'],
+        [$class: 'FileBinding', credentialsId: 'android-playserviceaccount-tvheadend', variable: 'ANDROID_PLAY_SERVICE_ACCOUNT'],
+    ]) {
+        writeFile file: 'local-tvheadend.properties', text: "ie.macinnes.tvheadend.keystoreFile=$ANDROID_KEYSTORE\nie.macinnes.tvheadend.keystorePassword=$ANDROID_KEYSTORE_PASSWORD\nie.macinnes.tvheadend.keyAlias=Kiall Mac Innes\nie.macinnes.tvheadend.keyPassword=$ANDROID_KEYSTORE_PASSWORD\nie.macinnes.tvheadend.playServiceAccountFile=$ANDROID_PLAY_SERVICE_ACCOUNT\n"
 
-    androidApkUpload(
-        apkFilesPattern: 'app/build/outputs/apk/ie.macinnes.tvheadend-release.apk',
-        googleCredentialsId: 'android-tvheadend',
-        trackName: trackName,
-        recentChangeList: [
-            [language: 'en-GB', text: changeLog],
-        ],
-    )
+        // Publish everything when doing a production release
+        if (trackName == 'production') {
+          sh './gradlew publishRelease -PbuildNumber=' + env.BUILD_NUMBER + ' -PplayStoreTrack=' + trackName
+        } else {
+          sh './gradlew publishApkRelease -PbuildNumber=' + env.BUILD_NUMBER + ' -PplayStoreTrack=' + trackName
+        }
+    }
 }
 
 def publishApkToGitHub() {
