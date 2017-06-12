@@ -5,6 +5,8 @@ keystore.properties
 /projectFilesBackup/
 */libs/*.aar
 
+.idea/sonarlint
+
 # Created by https://www.gitignore.io/api/osx,linux,sublimetext,intellij,gradle,android,java
 
 ### Android ###
