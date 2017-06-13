@@ -47,7 +47,6 @@ public class Constants {
     public static final String KEY_SHIELD_WORKAROUND_ENABLED = "shield_workaround_enabled";
     public static final String KEY_DEBUG_TEXT_VIEW_ENABLED = "debug_text_view_enabled";
     public static final String KEY_TIMESHIFT_ENABLED = "timeshift_enabled";
-    public static final String KEY_DVR_ENABLED = "dvr_enabled";
     public static final String KEY_HTSP_STREAM_PROFILE = "htsp_stream_profile";
 
     // Bundle and Preference Keys

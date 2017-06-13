@@ -16,25 +16,48 @@
 
 package ie.macinnes.tvheadend.player;
 
-
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.Uri;
+import android.support.annotation.NonNull;
+import android.util.Log;
 
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 
-import java.io.Closeable;
-import java.lang.ref.WeakReference;
+import org.acra.ACRA;
 
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+
+import ie.macinnes.htsp.HtspMessage;
+import ie.macinnes.htsp.HtspNotConnectedException;
 import ie.macinnes.htsp.SimpleHtspConnection;
 import ie.macinnes.htsp.tasks.Subscriber;
+import ie.macinnes.tvheadend.Application;
+import ie.macinnes.tvheadend.Constants;
+import ie.macinnes.tvheadend.R;
+
+public class HtspDataSource implements DataSource, Subscriber.Listener, Closeable {
+    private static final String TAG = HtspDataSource.class.getName();
+    private static final int BUFFER_SIZE = 10*1024*1024;
+    private static final AtomicInteger sDataSourceCount = new AtomicInteger();
 
     public static class HtspFactory implements DataSource.Factory {
         private static final String TAG = HtspFactory.class.getName();
 
-    public static abstract class Factory implements DataSource.Factory {
+        private final Context mContext;
+        private final SimpleHtspConnection mConnection;
+        private final String mStreamProfile;
 
-        private static final String TAG = HtspDataSource.Factory.class.getName();
+        private WeakReference<HtspDataSource> mCurrentHtspDataSource;
 
         public HtspFactory(Context context, SimpleHtspConnection connection, String streamProfile) {
             mContext = context;
@@ -46,25 +69,30 @@ import ie.macinnes.htsp.tasks.Subscriber;
         public HtspDataSource createDataSource() {
             releaseCurrentDataSource();
 
-            mCurrentDataSource = new WeakReference<>(createDataSourceInternal());
-            return mCurrentDataSource.get();
+            mCurrentHtspDataSource = new WeakReference<>(new HtspDataSource(mContext, mConnection, mStreamProfile));
+            return mCurrentHtspDataSource.get();
         }
 
         public HtspDataSource getCurrentDataSource() {
-            if (mCurrentDataSource != null) {
-                return mCurrentDataSource.get();
+            if (mCurrentHtspDataSource != null) {
+                return mCurrentHtspDataSource.get();
             }
 
             return null;
         }
 
         public void releaseCurrentDataSource() {
-            if (mCurrentDataSource != null) {
-                mCurrentDataSource.get().release();
-                mCurrentDataSource.clear();
-                mCurrentDataSource = null;
+            if (mCurrentHtspDataSource != null) {
+                mCurrentHtspDataSource.get().release();
+                mCurrentHtspDataSource.clear();
+                mCurrentHtspDataSource = null;
             }
         }
+    }
+
+    private Context mContext;
+    private SimpleHtspConnection mConnection;
+    private String mStreamProfile;
 
     private int mTimeshiftPeriod = 0;
 
@@ -76,11 +104,10 @@ import ie.macinnes.htsp.tasks.Subscriber;
     private ByteBuffer mBuffer;
     private ReentrantLock mLock = new ReentrantLock();
 
-    protected final Context mContext;
-    protected SimpleHtspConnection mConnection;
-    protected DataSpec mDataSpec;
+    private boolean mIsOpen = false;
+    private boolean mIsSubscribed = false;
 
-    public HtspDataSource(Context context, SimpleHtspConnection connection) {
+    public HtspDataSource(Context context, SimpleHtspConnection connection, String streamProfile) {
         mContext = context;
         mConnection = connection;
         mStreamProfile = streamProfile;
@@ -137,20 +164,29 @@ import ie.macinnes.htsp.tasks.Subscriber;
         Application.getRefWatcher(mContext).watch(this);
     }
 
-    public abstract void release();
+    @Override
+    protected void finalize() throws Throwable {
+        // This is a total hack, but there's not much else we can do?
+        // https://github.com/google/ExoPlayer/issues/2662 - Luckily, i've not found it's actually
+        // been used anywhere at this moment.
+        if (mSubscriber != null || mConnection != null) {
+            Log.e(TAG, "Datasource finalize relied upon to release the subscription");
 
-    // Methods used by the player, which need to be passed to the Subscriber
-    public abstract void pause();
-    public abstract void resume();
-//    public abstract void seek(long timeMs);
-    public abstract long getTimeshiftStartTime();
-    public abstract long getTimeshiftStartPts();
-    public abstract long getTimeshiftOffsetPts();
-    public abstract void setSpeed(int speed);
+            release();
+
+            try {
+                // If we see this in the wild, I want to know about it. Fake an exception and send
+                // and crash report.
+                ACRA.getErrorReporter().handleException(new Exception(
+                        "Datasource finalize relied upon to release the subscription"));
+            } catch (IllegalStateException e) {
+                // Ignore, ACRA is not available.
+            }
+        }
+    }
 
     // DataSource Methods
     @Override
-<<<<<<< HEAD
     public long open(DataSpec dataSpec) throws IOException {
         Log.i(TAG, "Opening HTSP DataSource ("+mDataSourceNumber+")");
         mDataSpec = dataSpec;

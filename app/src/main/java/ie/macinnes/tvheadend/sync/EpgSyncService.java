@@ -47,7 +47,6 @@ public class EpgSyncService extends Service {
 
     protected SimpleHtspConnection mConnection;
     protected EpgSyncTask mEpgSyncTask;
-    protected DvrDeleteTask mDvrDeleteTask;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -137,29 +136,14 @@ public class EpgSyncService extends Service {
         mConnection = new SimpleHtspConnection(connectionDetails);
 
         mEpgSyncTask = new EpgSyncTask(this, mConnection);
+
         mConnection.addMessageListener(mEpgSyncTask);
         mConnection.addAuthenticationListener(mEpgSyncTask);
-
-        mDvrDeleteTask = new DvrDeleteTask(this, mConnection);
-        mConnection.addMessageListener(mDvrDeleteTask);
 
         mConnection.start();
     }
 
     protected void closeConnection() {
-        if (mDvrDeleteTask != null) {
-            mConnection.removeMessageListener(mDvrDeleteTask);
-            mDvrDeleteTask.stop();
-            mDvrDeleteTask = null;
-        }
-
-        if (mEpgSyncTask != null) {
-            mConnection.removeMessageListener(mEpgSyncTask);
-            mConnection.removeAuthenticationListener(mEpgSyncTask);
-//            mEpgSyncTask.stop();
-            mEpgSyncTask = null;
-        }
-
         if (mConnection != null) {
             Log.d(TAG, "Closing HTSP connection");
             mConnection.stop();

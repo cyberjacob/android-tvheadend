@@ -44,7 +44,6 @@ import ie.macinnes.tvheadend.R;
 import ie.macinnes.tvheadend.TvContractUtils;
 import ie.macinnes.tvheadend.player.Player;
 
-// TODO: Rename?
 public class LiveSession extends TvInputService.Session implements Player.Listener {
     private static final String TAG = LiveSession.class.getName();
     private static final AtomicInteger sSessionCounter = new AtomicInteger();
@@ -57,7 +56,7 @@ public class LiveSession extends TvInputService.Session implements Player.Listen
 
     private Player mPlayer;
 
-    protected Runnable mPlayChannelRunnable;
+    protected PlayChannelRunnable mPlayChannelRunnable;
 
     public LiveSession(Context context, SimpleHtspConnection connection) {
         super(context);
@@ -70,7 +69,7 @@ public class LiveSession extends TvInputService.Session implements Player.Listen
         mSharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
-        Log.d(TAG, "LiveSession created (" + mSessionNumber + ")");
+        Log.d(TAG, "Session created (" + mSessionNumber + ")");
 
         mPlayer = new Player(mContext, connection, this);
 
@@ -86,7 +85,6 @@ public class LiveSession extends TvInputService.Session implements Player.Listen
     // TvInputService.Session Methods
     @Override
     public boolean onTune(Uri channelUri) {
-        // Start Playback of a Live Channel
         Log.d(TAG, "Session onTune (" + mSessionNumber + "): " + channelUri.toString());
 
         // Notify we are busy tuning
@@ -97,19 +95,6 @@ public class LiveSession extends TvInputService.Session implements Player.Listen
         mHandler.post(mPlayChannelRunnable);
 
         return true;
-    }
-
-    @Override
-    public void onTimeShiftPlay(Uri recordedProgramUri) {
-        // Start Playback of a Recorded Program
-        Log.d(TAG, "Session onTimeShiftPlay (" + mSessionNumber + "): " + recordedProgramUri.toString());
-
-        // Notify we are busy tuning
-        notifyVideoUnavailable(TvInputManager.VIDEO_UNAVAILABLE_REASON_TUNING);
-
-        mHandler.removeCallbacks(mPlayChannelRunnable);
-        mPlayChannelRunnable = new PlayRecordedProgramRunnable(recordedProgramUri);
-        mHandler.post(mPlayChannelRunnable);
     }
 
     @Override
@@ -228,8 +213,9 @@ public class LiveSession extends TvInputService.Session implements Player.Listen
         }
 
         private boolean tune(int tvhChannelId) {
+            // TODO This should take in the Android Channel URI, and convert to tvhChannelId here
             Log.i(TAG, "Start playback of channel");
-            Uri channelUri = Uri.parse("htsp://channel/" + tvhChannelId);
+            Uri channelUri = Uri.parse("htsp://" + tvhChannelId);
 
             mPlayer.open(channelUri);
             mPlayer.play();
@@ -253,43 +239,6 @@ public class LiveSession extends TvInputService.Session implements Player.Listen
                 tune(tvhChannelId);
             } else {
                 Log.w(TAG, "Failed to get channel info for " + mChannelUri);
-            }
-        }
-    }
-
-    private class PlayRecordedProgramRunnable implements Runnable {
-        private final Uri mRecordedProgramUri;
-
-        public PlayRecordedProgramRunnable(Uri recordedProgramUri) {
-            mRecordedProgramUri = recordedProgramUri;
-        }
-
-        private boolean tune(int dvrEntryId) {
-            Log.i(TAG, "Start playback of DVR entry");
-            Uri recordedProgramUri = Uri.parse("htsp://dvrfile/" + dvrEntryId);
-
-            mPlayer.open(recordedProgramUri);
-            mPlayer.play();
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                notifyTimeShiftStatusChanged(TvInputManager.TIME_SHIFT_STATUS_AVAILABLE);
-            }
-
-            return true;
-        }
-
-        @Override
-        public void run() {
-            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
-                return;
-            }
-
-            Integer tvhDvrEntryId = TvContractUtils.getTvhDvrEntryIdFromRecordedProgramUri(mContext, mRecordedProgramUri);
-
-            if (tvhDvrEntryId != null) {
-                tune(tvhDvrEntryId);
-            } else {
-                Log.w(TAG, "Failed to get recorded program info for " + mRecordedProgramUri);
             }
         }
     }

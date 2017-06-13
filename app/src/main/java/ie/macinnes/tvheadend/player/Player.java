@@ -19,9 +19,7 @@ package ie.macinnes.tvheadend.player;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Point;
-import android.graphics.drawable.BitmapDrawable;
 import android.media.PlaybackParams;
-import android.media.tv.TvContract;
 import android.media.tv.TvTrackInfo;
 import android.net.Uri;
 import android.os.Build;
@@ -34,8 +32,6 @@ import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.CaptioningManager;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.android.exoplayer2.C;
@@ -60,29 +56,26 @@ import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.ui.DebugTextViewHelper;
 import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.upstream.DefaultAllocator;
 import com.google.android.exoplayer2.util.MimeTypes;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import ie.macinnes.htsp.HtspMessage;
-import ie.macinnes.htsp.HtspNotConnectedException;
 import ie.macinnes.htsp.SimpleHtspConnection;
+import ie.macinnes.htsp.tasks.Subscriber;
 import ie.macinnes.tvheadend.Constants;
 import ie.macinnes.tvheadend.R;
-import ie.macinnes.tvheadend.TvContractUtils;
 
 public class Player implements ExoPlayer.EventListener {
     private static final String TAG = Player.class.getName();
 
     private static final float CAPTION_LINE_HEIGHT_RATIO = 0.0533f;
     private static final int TEXT_UNIT_PIXELS = 0;
-    public static final long INVALID_TIMESHIFT_TIME = HtspDataSource.INVALID_TIMESHIFT_TIME;
+    public static final long INVALID_TIMESHIFT_TIME = Subscriber.INVALID_TIMESHIFT_TIME;
 
     public interface Listener {
         /**
@@ -124,11 +117,9 @@ public class Player implements ExoPlayer.EventListener {
     private View mOverlayView;
     private DebugTextViewHelper mDebugViewHelper;
     private SubtitleView mSubtitleView;
-    private LinearLayout mRadioInfoView;
 
     private MediaSource mMediaSource;
-
-    private Uri currentChannelUri;
+    private Subscriber mSubscriber;
 
     public Player(Context context, SimpleHtspConnection connection, Listener listener) {
         mContext = context;
@@ -145,14 +136,8 @@ public class Player implements ExoPlayer.EventListener {
         // Stop any existing playback
         stop();
 
-        currentChannelUri = channelUri;
-
         // Create the media source
-        if (channelUri.getHost().equals("channel")) {
-            buildHtspChannelMediaSource(channelUri);
-        } else {
-            buildHtspRecordingMediaSource(channelUri);
-        }
+        buildHtspMediaSource(channelUri);
 
         // Prepare the media source
         mExoPlayer.prepare(mMediaSource);
@@ -193,24 +178,24 @@ public class Player implements ExoPlayer.EventListener {
     }
 
     public void resume() {
-        mExoPlayer.setPlayWhenReady(true);
+        if (mSubscriber != null) {
+            Log.d(TAG, "Resuming Subscriber");
 
-        if (mDataSource != null) {
-            Log.d(TAG, "Resuming HtspDataSource");
-            mDataSource.resume();
+            mExoPlayer.setPlayWhenReady(true);
+            mSubscriber.resume();
         } else {
-            Log.w(TAG, "Unable to resume, no HtspDataSource available");
+            Log.w(TAG, "Unable to resume, no Subscriber available");
         }
     }
 
     public void pause() {
-        mExoPlayer.setPlayWhenReady(false);
+        if (mSubscriber != null) {
+            Log.d(TAG, "Pausing Subscriber");
 
-        if (mDataSource != null) {
-            Log.d(TAG, "Pausing HtspDataSource");
-            mDataSource.pause();
+            mExoPlayer.setPlayWhenReady(false);
+            mSubscriber.pause();
         } else {
-            Log.w(TAG, "Unable to pause, no HtspDataSource available");
+            Log.w(TAG, "Unable to pause, no Subscriber available");
         }
     }
 
@@ -285,34 +270,26 @@ public class Player implements ExoPlayer.EventListener {
         }
     }
     public long getTimeshiftStartPosition() {
-        if (mDataSource != null) {
-            long startTime = mDataSource.getTimeshiftStartTime();
-            if (startTime != INVALID_TIMESHIFT_TIME) {
-                // For live content
+        if (mSubscriber != null) {
+            long startTime = mSubscriber.getTimeshiftStartTime();
+            if (startTime != Subscriber.INVALID_TIMESHIFT_TIME) {
                 return startTime / 1000;
-            } else {
-                // For recorded content
-                return 0;
             }
         } else {
-            Log.w(TAG, "Unable to getTimeshiftStartPosition, no HtspDataSource available");
+            Log.w(TAG, "Unable to getTimeshiftStartPosition, no Subscriber available");
         }
 
         return INVALID_TIMESHIFT_TIME;
     }
 
     public long getTimeshiftCurrentPosition() {
-        if (mDataSource != null) {
-            long offset = mDataSource.getTimeshiftOffsetPts();
-            if (offset != INVALID_TIMESHIFT_TIME) {
-                // For live content
+        if (mSubscriber != null) {
+            long offset = mSubscriber.getTimeshiftOffsetPts();
+            if (offset != Subscriber.INVALID_TIMESHIFT_TIME) {
                 return System.currentTimeMillis() + (offset / 1000);
-            } else {
-                // For recorded content
-                mExoPlayer.getCurrentPosition();
             }
         } else {
-            Log.w(TAG, "Unable to getTimeshiftCurrentPosition, no HtspDataSource available");
+            Log.w(TAG, "Unable to getTimeshiftCurrentPosition, no Subscriber available");
         }
 
         return INVALID_TIMESHIFT_TIME;
@@ -336,10 +313,6 @@ public class Player implements ExoPlayer.EventListener {
         if (mSubtitleView == null) {
             mSubtitleView = getSubtitleView(captionStyle, fontScale);
             mExoPlayer.setTextOutput(mSubtitleView);
-        }
-
-        if (mRadioInfoView == null) {
-            mRadioInfoView = (LinearLayout) mOverlayView.findViewById(R.id.radio_info_view);
         }
 
         return mOverlayView;
@@ -406,7 +379,7 @@ public class Player implements ExoPlayer.EventListener {
         mDataSourceHtspFactory = new HtspDataSource.HtspFactory(mContext, mConnection, streamProfile);
 
         // Produces Extractor instances for parsing the media data.
-        mExtractorsFactory = new HtspExtractorsFactory(mContext);
+        mExtractorsFactory = new HtspExtractor.Factory(mContext);
     }
 
     private TvheadendTrackSelector buildTrackSelector() {
@@ -436,7 +409,7 @@ public class Player implements ExoPlayer.EventListener {
         );
     }
 
-    private void buildHtspChannelMediaSource(Uri channelUri) {
+    private void buildHtspMediaSource(Uri channelUri) {
         // This is the MediaSource representing the media to be played.
         mMediaSource = new ExtractorMediaSource(channelUri,
                 mDataSourceHtspFactory, mExtractorsFactory, null, mEventLogger);
@@ -475,9 +448,6 @@ public class Player implements ExoPlayer.EventListener {
         List<TvTrackInfo> tracks = new ArrayList<>();
         SparseArray<String> selectedTracks = new SparseArray<>();
 
-        // Keep track of weather we have a video track available
-        boolean hasVideoTrack = false;
-
         for (int rendererIndex = 0; rendererIndex < mappedTrackInfo.length; rendererIndex++) {
             TrackGroupArray rendererTrackGroups = mappedTrackInfo.getTrackGroups(rendererIndex);
             TrackSelection trackSelection = trackSelections.get(rendererIndex);
@@ -502,7 +472,6 @@ public class Player implements ExoPlayer.EventListener {
                                     //TODO: Default case
                                     switch (trackType) {
                                         case C.TRACK_TYPE_VIDEO:
-                                            hasVideoTrack = true;
                                             selectedTracks.put(TvTrackInfo.TYPE_VIDEO, format.id);
                                             break;
                                         case C.TRACK_TYPE_AUDIO:
@@ -520,43 +489,7 @@ public class Player implements ExoPlayer.EventListener {
             }
         }
 
-        if(hasVideoTrack) {
-            disableRadioInfoScreen();
-        } else {
-            enableRadioInfoScreen();
-        }
-
         mListener.onTracksChanged(tracks, selectedTracks);
-    }
-
-    private void enableRadioInfoScreen() {
-        // No video track available, use the channel logo as a substitute
-        Log.i(TAG, "No video track available");
-
-        try {
-            String channelName = TvContractUtils.getChannelName(mContext, Integer.parseInt(currentChannelUri.getHost()));
-            TextView radioChannelName = (TextView) mRadioInfoView.findViewById(R.id.radio_channel_name);
-            radioChannelName.setText(channelName);
-
-            ImageView radioChannelIcon = (ImageView) mRadioInfoView.findViewById(R.id.radio_channel_icon);
-
-            long androidChannelId = TvContractUtils.getChannelId(mContext, Integer.parseInt(currentChannelUri.getHost()));
-            Uri channelIconUri = TvContract.buildChannelLogoUri(androidChannelId);
-
-            InputStream is = mContext.getContentResolver().openInputStream(channelIconUri);
-
-            BitmapDrawable iconImage = new BitmapDrawable(mContext.getResources(), is);
-            radioChannelIcon.setImageDrawable(iconImage);
-
-            mRadioInfoView.setVisibility(View.VISIBLE);
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to fetch logo", e);
-        }
-    }
-
-    private void disableRadioInfoScreen() {
-        Log.d(TAG, "Video track is available");
-        mRadioInfoView.setVisibility(View.INVISIBLE);
     }
 
     @Override
