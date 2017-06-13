@@ -64,13 +64,13 @@ public class TvContractUtils {
 
         Uri channelsUri = TvContract.buildChannelsUriForInput(TvContractUtils.getInputId());
 
-        String[] projection = {TvContract.Channels.COLUMN_DISPLAY_NAME};
-        String[] mSelectionArgs = {String.valueOf(channelId)};
-        String whereClause = TvContract.Channels.COLUMN_ORIGINAL_NETWORK_ID+" = ?";
+        String[] projection = {TvContract.Channels.COLUMN_ORIGINAL_NETWORK_ID, TvContract.Channels.COLUMN_DISPLAY_NAME};
 
-        try (Cursor cursor = resolver.query(channelsUri, projection, whereClause, mSelectionArgs, null)) {
+        try (Cursor cursor = resolver.query(channelsUri, projection, null, null, null)) {
             while (cursor != null && cursor.moveToNext()) {
-                return cursor.getString(0);
+                if (cursor.getInt(0) == channelId) {
+                    return cursor.getString(1);
+                }
             }
         }
 

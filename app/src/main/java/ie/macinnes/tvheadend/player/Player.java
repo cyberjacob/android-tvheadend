@@ -133,6 +133,8 @@ public class Player implements ExoPlayer.EventListener {
 
     private Uri currentChannelUri;
 
+    private Uri currentChannelUri;
+
     public Player(Context context, SimpleHtspConnection connection, Listener listener) {
         mContext = context;
         mConnection = connection;
@@ -327,6 +329,10 @@ public class Player implements ExoPlayer.EventListener {
         if (mSubtitleView == null) {
             mSubtitleView = getSubtitleView(captionStyle, fontScale);
             mExoPlayer.setTextOutput(mSubtitleView);
+        }
+
+        if (mRadioInfoView == null) {
+            mRadioInfoView = (LinearLayout) mOverlayView.findViewById(R.id.radio_info_view);
         }
 
         if (mRadioInfoView == null) {
