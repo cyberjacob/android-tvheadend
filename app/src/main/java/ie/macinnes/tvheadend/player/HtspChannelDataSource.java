@@ -16,76 +16,78 @@
 
 package ie.macinnes.tvheadend.player;
 
-
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.Uri;
+import android.support.annotation.NonNull;
+import android.util.Log;
 
-import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.DataSpec;
 
-import java.io.Closeable;
-import java.lang.ref.WeakReference;
+import org.acra.ACRA;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+
+import ie.macinnes.htsp.HtspMessage;
+import ie.macinnes.htsp.HtspNotConnectedException;
 import ie.macinnes.htsp.SimpleHtspConnection;
 import ie.macinnes.htsp.tasks.Subscriber;
+import ie.macinnes.tvheadend.Application;
+import ie.macinnes.tvheadend.Constants;
+import ie.macinnes.tvheadend.R;
 
-    public static class HtspFactory implements DataSource.Factory {
-        private static final String TAG = HtspFactory.class.getName();
+public class HtspChannelDataSource extends HtspDataSource implements Subscriber.Listener {
+    private static final String TAG = HtspChannelDataSource.class.getName();
+    private static final AtomicInteger sDataSourceCount = new AtomicInteger();
+    private static final int BUFFER_SIZE = 10*1024*1024;
+    public static final byte[] HEADER = new byte[] {0,1,0,1,0,1,0,1};
 
-    public static abstract class Factory implements DataSource.Factory {
+    public static class Factory extends HtspDataSource.Factory {
+        private static final String TAG = Factory.class.getName();
 
-        private static final String TAG = HtspDataSource.Factory.class.getName();
+        private final Context mContext;
+        private final SimpleHtspConnection mConnection;
+        private final String mStreamProfile;
 
-        public HtspFactory(Context context, SimpleHtspConnection connection, String streamProfile) {
+        public Factory(Context context, SimpleHtspConnection connection, String streamProfile) {
             mContext = context;
             mConnection = connection;
             mStreamProfile = streamProfile;
         }
 
         @Override
-        public HtspDataSource createDataSource() {
-            releaseCurrentDataSource();
-
-            mCurrentDataSource = new WeakReference<>(createDataSourceInternal());
-            return mCurrentDataSource.get();
+        public HtspDataSource createDataSourceInternal() {
+            return new HtspChannelDataSource(mContext, mConnection, mStreamProfile);
         }
 
-        public HtspDataSource getCurrentDataSource() {
-            if (mCurrentDataSource != null) {
-                return mCurrentDataSource.get();
-            }
+    }
 
-            return null;
-        }
+    private String mStreamProfile;
 
-        public void releaseCurrentDataSource() {
-            if (mCurrentDataSource != null) {
-                mCurrentDataSource.get().release();
-                mCurrentDataSource.clear();
-                mCurrentDataSource = null;
-            }
-        }
-
+    private final SharedPreferences mSharedPreferences;
     private int mTimeshiftPeriod = 0;
 
     private final int mDataSourceNumber;
     private Subscriber mSubscriber;
 
-    private DataSpec mDataSpec;
-
     private ByteBuffer mBuffer;
     private ReentrantLock mLock = new ReentrantLock();
 
-    protected final Context mContext;
-    protected SimpleHtspConnection mConnection;
-    protected DataSpec mDataSpec;
+    private boolean mIsOpen = false;
+    private boolean mIsSubscribed = false;
 
-    public HtspDataSource(Context context, SimpleHtspConnection connection) {
-        mContext = context;
-        mConnection = connection;
+    public HtspChannelDataSource(Context context, SimpleHtspConnection connection, String streamProfile) {
+        super(context, connection);
+
         mStreamProfile = streamProfile;
 
-        SharedPreferences mSharedPreferences = mContext.getSharedPreferences(
+        mSharedPreferences = mContext.getSharedPreferences(
                 Constants.PREFERENCE_TVHEADEND, Context.MODE_PRIVATE);
 
         boolean timeshiftEnabled = mSharedPreferences.getBoolean(
@@ -99,17 +101,20 @@ import ie.macinnes.htsp.tasks.Subscriber;
 
         mDataSourceNumber = sDataSourceCount.incrementAndGet();
 
-        Log.d(TAG, "New HtspDataSource instantiated ("+mDataSourceNumber+")");
+        Log.d(TAG, "New HtspChannelDataSource instantiated ("+mDataSourceNumber+")");
 
         try {
+            // Create the buffer, and place the HTSPChannelDataSource header in place.
             mBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-            mBuffer.limit(0);
+            mBuffer.limit(HEADER.length);
+            mBuffer.put(HEADER);
+            mBuffer.position(0);
         } catch (OutOfMemoryError e) {
             // Since we're allocating a large buffer here, it's fairly safe to assume we'll have
             // enough memory to catch and throw this exception. We do this, as each OOM exception
             // message is unique (lots of #'s of bytes available/used/etc) and means crash reporting
             // doesn't group things nicely.
-            throw new HtspOutOfMemoryError("OutOfMemoryError when allocating HtspDataSource buffer ("+mDataSourceNumber+")", e);
+            throw new RuntimeException("OutOfMemoryError when allocating HtspChannelDataSource buffer ("+mDataSourceNumber+")", e);
         }
 
         mSubscriber = new Subscriber(mConnection);
@@ -117,51 +122,40 @@ import ie.macinnes.htsp.tasks.Subscriber;
         mConnection.addAuthenticationListener(mSubscriber);
     }
 
-    public Subscriber getSubscriber() {
-        return mSubscriber;
-    }
+    @Override
+    protected void finalize() throws Throwable {
+        // This is a total hack, but there's not much else we can do?
+        // https://github.com/google/ExoPlayer/issues/2662 - Luckily, i've not found it's actually
+        // been used anywhere at this moment.
+        if (mSubscriber != null || mConnection != null) {
+            Log.e(TAG, "Datasource finalize relied upon to release the subscription");
 
-    public void release() {
-        if (mConnection != null) {
-            mConnection.removeAuthenticationListener(mSubscriber);
-            mConnection = null;
+            release();
+
+            try {
+                // If we see this in the wild, I want to know about it. Fake an exception and send
+                // and crash report.
+                ACRA.getErrorReporter().handleException(new Exception(
+                        "Datasource finalize relied upon to release the subscription"));
+            } catch (IllegalStateException e) {
+                // Ignore, ACRA is not available.
+            }
         }
-
-        if (mSubscriber != null) {
-            mSubscriber.removeSubscriptionListener(this);
-            mSubscriber.unsubscribe();
-            mSubscriber = null;
-        }
-
-        // Watch for memory leaks
-        Application.getRefWatcher(mContext).watch(this);
     }
-
-    public abstract void release();
-
-    // Methods used by the player, which need to be passed to the Subscriber
-    public abstract void pause();
-    public abstract void resume();
-//    public abstract void seek(long timeMs);
-    public abstract long getTimeshiftStartTime();
-    public abstract long getTimeshiftStartPts();
-    public abstract long getTimeshiftOffsetPts();
-    public abstract void setSpeed(int speed);
 
     // DataSource Methods
     @Override
-<<<<<<< HEAD
     public long open(DataSpec dataSpec) throws IOException {
-        Log.i(TAG, "Opening HTSP DataSource ("+mDataSourceNumber+")");
+        Log.i(TAG, "Opening HtspChannelDataSource ("+mDataSourceNumber+")");
         mDataSpec = dataSpec;
 
         if (!mIsSubscribed) {
             try {
-                mSubscriber.subscribe(Long.parseLong(
-                        dataSpec.uri.getHost()), mStreamProfile, mTimeshiftPeriod);
+                long channelId = Long.parseLong(dataSpec.uri.getPath().substring(1));
+                mSubscriber.subscribe(channelId, mStreamProfile, mTimeshiftPeriod);
                 mIsSubscribed = true;
             } catch (HtspNotConnectedException e) {
-                throw new IOException("Failed to open DataSource, HTSP not connected (" + mDataSourceNumber + ")", e);
+                throw new IOException("Failed to open HtspChannelDataSource, HTSP not connected (" + mDataSourceNumber + ")", e);
             }
         }
 
@@ -192,7 +186,6 @@ import ie.macinnes.htsp.tasks.Subscriber;
                     Log.v(TAG, "Blocking for more data ("+mDataSourceNumber+")");
                 Thread.sleep(250);
             } catch (InterruptedException e) {
-                //TODO: Clean up and re-throw, or java will do it anway
                 // Ignore.
                 Log.w(TAG, "Caught InterruptedException ("+mDataSourceNumber+")");
                 return 0;
@@ -218,15 +211,6 @@ import ie.macinnes.htsp.tasks.Subscriber;
         }
 
         return length;
-    }
-
-    @Override
-    public Uri getUri() {
-        if (mDataSpec != null) {
-            return mDataSpec.uri;
-        }
-
-        return null;
     }
 
     @Override
@@ -283,13 +267,81 @@ import ie.macinnes.htsp.tasks.Subscriber;
         serializeMessageToBuffer(message);
     }
 
+    // HtspDataSource Methods
+    public void release() {
+        if (mConnection != null) {
+            mConnection.removeAuthenticationListener(mSubscriber);
+            mConnection = null;
+        }
+
+        if (mSubscriber != null) {
+            mSubscriber.removeSubscriptionListener(this);
+            mSubscriber.unsubscribe();
+            mSubscriber = null;
+        }
+
+        // Watch for memory leaks
+        Application.getRefWatcher(mContext).watch(this);
+    }
+
+    @Override
+    public void pause() {
+        if (mSubscriber != null) {
+            mSubscriber.pause();
+        }
+    }
+
+    @Override
+    public void resume() {
+        if (mSubscriber != null) {
+            mSubscriber.resume();
+        }
+    }
+
+//    @Override
+//    public void seek(long timeMs) {
+//        // TODO?
+//    }
+
+    @Override
+    public long getTimeshiftStartTime() {
+        if (mSubscriber != null) {
+            return mSubscriber.getTimeshiftStartTime();
+        }
+
+        return INVALID_TIMESHIFT_TIME;
+    }
+
+    @Override
+    public long getTimeshiftStartPts() {
+        if (mSubscriber != null) {
+            return mSubscriber.getTimeshiftStartPts();
+        }
+
+        return INVALID_TIMESHIFT_TIME;
+    }
+
+    @Override
+    public long getTimeshiftOffsetPts() {
+        if (mSubscriber != null) {
+            return mSubscriber.getTimeshiftOffsetPts();
+        }
+
+        return INVALID_TIMESHIFT_TIME;
+    }
+
+    @Override
+    public void setSpeed(int speed) {
+
+    }
+
     // Misc Internal Methods
     private void serializeMessageToBuffer(@NonNull HtspMessage message) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         mLock.lock();
         try (
-                ObjectOutputStream objectOutput = new ObjectOutputStream(outputStream)
+                ObjectOutputStream objectOutput = new ObjectOutputStream(outputStream);
         ) {
             objectOutput.writeUnshared(message);
             objectOutput.flush();
@@ -310,12 +362,6 @@ import ie.macinnes.htsp.tasks.Subscriber;
             } catch (IOException ex) {
                 // Ignore
             }
-        }
-    }
-
-    private class HtspOutOfMemoryError extends RuntimeException {
-        HtspOutOfMemoryError(String message, Throwable cause) {
-            super(message, cause);
         }
     }
 }
