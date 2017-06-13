@@ -545,13 +545,7 @@ public class Player implements ExoPlayer.EventListener {
         Log.i(TAG, "No video track available");
 
         try {
-            HtspMessage requestChannelInfoMessage = new HtspMessage();
-            requestChannelInfoMessage.put("method", "getChannel");
-            requestChannelInfoMessage.put("channelId", currentChannelUri.getHost());
-
-            HtspMessage channelInfo = mConnection.sendMessage(requestChannelInfoMessage, 1000);
-
-            String channelName = (String) channelInfo.get("channelName");
+            String channelName = TvContractUtils.getChannelName(mContext, Integer.parseInt(currentChannelUri.getHost()));
             TextView radioChannelName = (TextView) mRadioInfoView.findViewById(R.id.radio_channel_name);
             radioChannelName.setText(channelName);
 
@@ -566,9 +560,6 @@ public class Player implements ExoPlayer.EventListener {
             radioChannelIcon.setImageDrawable(iconImage);
 
             mRadioInfoView.setVisibility(View.VISIBLE);
-        } catch (HtspNotConnectedException e) {
-            // Not sure how we would get here if we're not connected, just give up
-            Log.d(TAG, "Exception raised while fetching channel information for radio info screen", e);
         } catch (IOException e) {
             Log.e(TAG, "Failed to fetch logo", e);
         }
