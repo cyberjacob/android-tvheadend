@@ -133,8 +133,6 @@ public class Player implements ExoPlayer.EventListener {
 
     private Uri currentChannelUri;
 
-    private Uri currentChannelUri;
-
     public Player(Context context, SimpleHtspConnection connection, Listener listener) {
         mContext = context;
         mConnection = connection;
