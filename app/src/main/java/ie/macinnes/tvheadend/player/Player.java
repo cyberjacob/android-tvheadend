@@ -411,7 +411,15 @@ public class Player implements ExoPlayer.EventListener {
                 new AdaptiveTrackSelection.Factory(null);
 
         TvheadendTrackSelector trackSelector = new TvheadendTrackSelector(trackSelectionFactory);
-        trackSelector.setTunnelingAudioSessionId(C.generateAudioSessionIdV21(mContext));
+
+        final boolean enableAudioTunneling = mSharedPreferences.getBoolean(
+            Constants.KEY_AUDIO_TUNNELING_ENABLED,
+            mContext.getResources().getBoolean(R.bool.pref_default_audio_tunneling_enabled)
+        );
+
+        if (enableAudioTunneling) {
+            trackSelector.setTunnelingAudioSessionId(C.generateAudioSessionIdV21(mContext));
+        }
 
         return trackSelector;
     }
