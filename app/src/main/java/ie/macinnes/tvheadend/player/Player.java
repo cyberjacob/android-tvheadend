@@ -57,6 +57,7 @@ import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.text.CaptionStyleCompat;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
@@ -70,6 +71,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import ie.macinnes.htsp.HtspMessage;
 import ie.macinnes.htsp.HtspNotConnectedException;
@@ -418,6 +420,13 @@ public class Player implements ExoPlayer.EventListener {
         if (enableAudioTunneling) {
             trackSelector.setTunnelingAudioSessionId(C.generateAudioSessionIdV21(mContext));
         }
+
+        String languageCode = Locale.getDefault().getISO3Language();
+
+        DefaultTrackSelector.Parameters trackSelectorParameters = new DefaultTrackSelector.Parameters()
+                .withPreferredAudioLanguage(languageCode);
+
+        trackSelector.setParameters(trackSelectorParameters);
 
         return trackSelector;
     }
