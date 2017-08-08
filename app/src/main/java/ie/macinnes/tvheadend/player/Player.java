@@ -133,7 +133,7 @@ public class Player implements ExoPlayer.EventListener {
     private MediaSource mMediaSource;
     private Subscriber mSubscriber;
 
-    private Uri currentChannelUri;
+    private Uri mCurrentChannelUri;
 
     public Player(Context context, SimpleHtspConnection connection, Listener listener) {
         mContext = context;
@@ -150,7 +150,7 @@ public class Player implements ExoPlayer.EventListener {
         // Stop any existing playback
         stop();
 
-        currentChannelUri = channelUri;
+        mCurrentChannelUri = channelUri;
 
         // Create the media source
         buildHtspMediaSource(channelUri);
@@ -339,6 +339,10 @@ public class Player implements ExoPlayer.EventListener {
             mRadioInfoView = (LinearLayout) mOverlayView.findViewById(R.id.radio_info_view);
         }
 
+        if (mRadioInfoView == null) {
+            mRadioInfoView = (LinearLayout) mOverlayView.findViewById(R.id.radio_info_view);
+        }
+
         return mOverlayView;
     }
 
@@ -403,7 +407,11 @@ public class Player implements ExoPlayer.EventListener {
         mDataSourceHtspFactory = new HtspDataSource.HtspFactory(mContext, mConnection, streamProfile);
 
         // Produces Extractor instances for parsing the media data.
+<<<<<<< HEAD
         mExtractorsFactory = new HtspExtractor.Factory(mContext);
+=======
+        mExtractorsFactory = new TvheadendExtractorsFactory(mContext);
+>>>>>>> upstream-develop
     }
 
     private TvheadendTrackSelector buildTrackSelector() {
@@ -420,6 +428,7 @@ public class Player implements ExoPlayer.EventListener {
         if (enableAudioTunneling) {
             trackSelector.setTunnelingAudioSessionId(C.generateAudioSessionIdV21(mContext));
         }
+<<<<<<< HEAD
 
         String languageCode = Locale.getDefault().getISO3Language();
 
@@ -427,6 +436,8 @@ public class Player implements ExoPlayer.EventListener {
                 .withPreferredAudioLanguage(languageCode);
 
         trackSelector.setParameters(trackSelectorParameters);
+=======
+>>>>>>> upstream-develop
 
         return trackSelector;
     }
@@ -546,13 +557,13 @@ public class Player implements ExoPlayer.EventListener {
         Log.i(TAG, "No video track available");
 
         try {
-            String channelName = TvContractUtils.getChannelName(mContext, Integer.parseInt(currentChannelUri.getHost()));
+            String channelName = TvContractUtils.getChannelName(mContext, Integer.parseInt(mCurrentChannelUri.getPath().substring(1)));
             TextView radioChannelName = (TextView) mRadioInfoView.findViewById(R.id.radio_channel_name);
             radioChannelName.setText(channelName);
 
             ImageView radioChannelIcon = (ImageView) mRadioInfoView.findViewById(R.id.radio_channel_icon);
 
-            long androidChannelId = TvContractUtils.getChannelId(mContext, Integer.parseInt(currentChannelUri.getHost()));
+            long androidChannelId = TvContractUtils.getChannelId(mContext, Integer.parseInt(mCurrentChannelUri.getPath().substring(1)));
             Uri channelIconUri = TvContract.buildChannelLogoUri(androidChannelId);
 
             InputStream is = mContext.getContentResolver().openInputStream(channelIconUri);
