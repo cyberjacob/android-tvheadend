@@ -125,7 +125,11 @@ public class LiveSession extends TvInputService.Session implements Player.Listen
     @Override
     public boolean onSelectTrack(int type, String trackId) {
         Log.d(TAG, "Session selectTrack: " + type + " / " + trackId + " (" + mSessionNumber + ")");
-        return mPlayer.selectTrack(type, trackId);
+        Boolean result = mPlayer.selectTrack(type, trackId);
+        if (result) {
+            notifyTrackSelected(type, trackId);
+        }
+        return result;
     }
 
     // Player.Listener Methods
