@@ -78,12 +78,20 @@ public class ExoPlayerUtils {
                 return null;
         }
 
-        if (!TextUtils.isEmpty(format.language)
-                && !format.language.equals("und")
-                && !format.language.equals("nar")
-                && !format.language.equals("syn")
-                && !format.language.equals("mis")) {
-            builder.setLanguage(format.language);
+        Log.d(TAG, "Found track with language: "+format.language);
+
+        if (!TextUtils.isEmpty(format.language)) {
+            switch (format.language) {
+                case "nar":
+                    builder.setLanguage("Audio Description");
+                    break;
+                case "und":
+                case "syn":
+                case "mis":
+                    break;
+                default:
+                    builder.setLanguage(format.language);
+            }
         }
 
         // TODO: Determine where the Description is used..
